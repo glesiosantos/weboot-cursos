@@ -2,7 +2,7 @@
 
 ## Autenticação e autorização
 
-A autenticação usa Supabase Auth com email confirmado. O navegador usa somente a chave `anon`. Rotas protegidas exigem sessão e as APIs administrativas consultam o papel persistido em `profiles`; nunca aceitam `role` ou `user_id` do cliente como autoridade.
+A autenticação usa Supabase Auth com email confirmado. O navegador usa somente a chave `anon`. Rotas protegidas exigem sessão e as APIs administrativas consultam o papel persistido em `profiles`; nunca aceitam `role` ou `user_id` do cliente como autoridade. A alteração de senha em `/conta/seguranca` chama `auth.updateUser` somente após confirmar a sessão ativa, não recebe identificador de usuário e limpa os campos após sucesso. Senhas não são persistidas nem registradas.
 
 Todas as tabelas expostas possuem RLS forçado. Alunos leem somente seus perfis, pedidos, matrículas, progresso e certificados. O trigger `protect_profile_role` impede elevação de privilégio. Escritas financeiras, matrículas e certificados ficam restritas ao administrador ou a operações server-side deliberadas.
 

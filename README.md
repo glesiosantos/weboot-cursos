@@ -36,7 +36,7 @@ Copie a URL e as chaves locais exibidas pelo Supabase para `.env`. Nunca version
 ## Variáveis
 
 - `NUXT_PUBLIC_SUPABASE_URL` e `NUXT_PUBLIC_SUPABASE_KEY`: endpoint e chave anon usados pelo módulo Supabase
-- `NUXT_SUPABASE_SERVICE_KEY`: service role esperada internamente pelo módulo, somente servidor
+- `NUXT_SUPABASE_SECRET_KEY`: chave secreta esperada internamente pelo módulo, somente servidor
 - `NUXT_PUBLIC_APP_URL`: origem pública da aplicação
 - `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_API_URL`, `NUXT_ASAAS_WEBHOOK_TOKEN`: integração futura, Sandbox por padrão
 
@@ -51,6 +51,31 @@ npx supabase db reset
 ```
 
 Os tipos de banco estão inicialmente em `app/types/database.types.ts`; após vincular um projeto, regenere-os com a Supabase CLI e revise o diff.
+
+## Autenticação e papéis
+
+- Login em `/login`, logout nos layouts autenticados e recuperação em `/esqueci-minha-senha`, com conclusão pública em `/redefinir-senha`.
+- Alteração da própria senha em `/conta/seguranca`, disponível a `ADMIN`, `INSTRUCTOR` e `STUDENT`. O fluxo usa exclusivamente a sessão ativa do Supabase Auth e não altera `profiles`.
+- Novos perfis recebem `STUDENT` por padrão. Apenas `ADMIN` acessa `/admin`; os demais papéis são direcionados à área do aluno.
+
+### URLs de recuperação de senha no Supabase
+
+Em **Authentication > URL Configuration**, o projeto DEV deve ter:
+
+- **Site URL:** `http://localhost:3000`
+- **Redirect URL:** `http://localhost:3000/redefinir-senha` (ou `http://localhost:3000/**`)
+
+Em produção, adicione `https://DOMINIO-PRODUCAO/redefinir-senha` às Redirect URLs. O frontend envia a origem atual da aplicação em `redirectTo`, portanto não há domínio de produção fixo no código. Essas configurações devem ser feitas no painel do Supabase e não são alteradas automaticamente pela aplicação.
+
+### Primeiro administrador em DEV
+
+Depois de aplicar as migrations, crie o usuário pelo fluxo normal de cadastro (ou pelo painel Auth do projeto DEV). No SQL Editor do projeto DEV, execute uma única vez, substituindo somente o email:
+
+```sql
+select public.bootstrap_admin('admin-dev@example.test');
+```
+
+A função funciona somente enquanto ainda não existe um administrador e não possui permissão para `anon` ou `authenticated`. Confirme o resultado consultando `public.profiles` no SQL Editor. Nunca documente ou versione a senha do administrador.
 
 ## Qualidade
 

@@ -10,7 +10,7 @@ const submit = async () => {
     await resetPassword(email.value)
   }
   finally {
-    message.value = 'Se existir uma conta para este email, enviaremos as instruções.'
+    message.value = 'Se existir uma conta para esse endereço, você receberá as instruções para redefinir sua senha.'
     loading.value = false
   }
 }
@@ -19,7 +19,7 @@ const submit = async () => {
 <template>
   <section class="mx-auto max-w-md px-4 py-16">
     <h1 class="text-3xl font-bold">
-      Recuperar senha
+      Esqueci minha senha
     </h1>
     <form
       class="mt-8 space-y-5"
@@ -49,7 +49,7 @@ const submit = async () => {
         class="w-full rounded-lg bg-brand-600 px-4 py-3 font-semibold text-white disabled:opacity-60"
         :disabled="loading"
       >
-        Enviar instruções
+        {{ loading ? 'Enviando…' : 'Enviar link de recuperação' }}
       </button>
     </form>
   </section>

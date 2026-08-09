@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    supabaseServiceRoleKey: '',
+    supabaseSecretKey: '',
     asaasApiKey: '',
     asaasApiUrl: 'https://api-sandbox.asaas.com/v3',
     asaasWebhookToken: '',
@@ -14,6 +14,7 @@ export default defineNuxtConfig({
   routeRules: {
     '/admin/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
     '/aluno/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/conta/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
   },
   compatibilityDate: '2025-07-15',
   vite: { plugins: [tailwindcss()] },
@@ -24,7 +25,7 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: '/login',
       callback: '/confirmacao',
-      exclude: ['/', '/cursos', '/login', '/cadastro', '/esqueci-minha-senha', '/confirmacao'],
+      exclude: ['/', '/cursos', '/login', '/cadastro', '/esqueci-minha-senha', '/redefinir-senha', '/confirmacao'],
     },
   },
 })
