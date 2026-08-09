@@ -1,0 +1,30 @@
+import tailwindcss from '@tailwindcss/vite'
+
+export default defineNuxtConfig({
+  modules: ['@nuxt/eslint', '@nuxtjs/supabase'],
+  devtools: { enabled: true },
+  css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    supabaseServiceRoleKey: '',
+    asaasApiKey: '',
+    asaasApiUrl: 'https://api-sandbox.asaas.com/v3',
+    asaasWebhookToken: '',
+    public: { appUrl: 'http://localhost:3000' },
+  },
+  routeRules: {
+    '/admin/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+    '/aluno/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
+  },
+  compatibilityDate: '2025-07-15',
+  vite: { plugins: [tailwindcss()] },
+  typescript: { strict: true },
+  eslint: { config: { stylistic: { semi: false, quotes: 'single' } } },
+  supabase: {
+    redirect: true,
+    redirectOptions: {
+      login: '/login',
+      callback: '/confirmacao',
+      exclude: ['/', '/cursos', '/login', '/cadastro', '/esqueci-minha-senha', '/confirmacao'],
+    },
+  },
+})
