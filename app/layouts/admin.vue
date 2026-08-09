@@ -29,13 +29,18 @@ const logout = async () => {
           </p><p class="font-bold">
             WeBoot Cursos
           </p>
-        </div><button
-          type="button"
-          class="text-sm font-bold"
-          @click="logout"
-        >
-          Sair
-        </button>
+        </div><div class="flex items-center gap-4">
+          <NuxtLink
+            to="/conta/seguranca"
+            class="text-sm font-bold text-primary-700"
+          >Segurança</NuxtLink><button
+            type="button"
+            class="text-sm font-bold"
+            @click="logout"
+          >
+            Sair
+          </button>
+        </div>
       </header><main class="p-5 sm:p-8">
         <slot />
       </main>

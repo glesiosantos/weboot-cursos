@@ -11,13 +11,18 @@ const links = [{ l: 'Visão geral', to: '/aluno' }, { l: 'Meus cursos', to: '/al
   <div class="min-h-screen bg-canvas">
     <header class="border-b border-border bg-white">
       <div class="page-shell flex h-18 items-center justify-between">
-        <AppLogo /><button
-          type="button"
-          class="text-sm font-bold"
-          @click="logout"
-        >
-          Sair
-        </button>
+        <AppLogo /><div class="flex items-center gap-4">
+          <NuxtLink
+            to="/conta/seguranca"
+            class="text-sm font-bold text-primary-700"
+          >Segurança</NuxtLink><button
+            type="button"
+            class="text-sm font-bold"
+            @click="logout"
+          >
+            Sair
+          </button>
+        </div>
       </div>
     </header><div class="page-shell grid gap-8 py-8 lg:grid-cols-[220px_1fr]">
       <aside>

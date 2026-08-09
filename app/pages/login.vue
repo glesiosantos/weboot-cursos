@@ -4,6 +4,11 @@ const password = ref('')
 const errorMessage = ref('')
 const loading = ref(false)
 const { signIn } = useAuth()
+const authFeedback = useState<string | undefined>('auth-feedback')
+
+onBeforeUnmount(() => {
+  authFeedback.value = undefined
+})
 
 const submit = async () => {
   errorMessage.value = ''
@@ -51,6 +56,13 @@ useSeoMeta({ title: 'Entrar | Weboot Cursos', robots: 'noindex, nofollow' })
         class="mt-8 space-y-5 rounded-card border border-border bg-white p-6 sm:p-8"
         @submit.prevent="submit"
       >
+        <p
+          v-if="authFeedback"
+          role="status"
+          class="rounded-lg bg-primary-50 p-3 text-sm font-semibold text-primary-700"
+        >
+          {{ authFeedback }}
+        </p>
         <div>
           <label
             for="email"

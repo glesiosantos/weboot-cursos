@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 const migration = readFileSync(resolve('supabase/migrations/20260809000200_rls_and_storage.sql'), 'utf8')
 const schema = readFileSync(resolve('supabase/migrations/20260809000100_initial_schema.sql'), 'utf8')
 const hardening = readFileSync(resolve('supabase/migrations/20260809000300_foundation_hardening.sql'), 'utf8')
+const bootstrapFix = readFileSync(resolve('supabase/migrations/20260809132958_fix_admin_bootstrap.sql'), 'utf8')
 
 describe('authorization schema', () => {
   it.each(['profiles', 'orders', 'enrollments', 'lesson_progress', 'certificates', 'audit_logs'])(
@@ -44,5 +45,7 @@ describe('authorization schema', () => {
 
   it('keeps administrator bootstrap unavailable through the API roles', () => {
     expect(hardening).toContain('revoke all on function public.bootstrap_admin(text) from public, anon, authenticated')
+    expect(bootstrapFix).toContain('session_user in (\'postgres\', \'supabase_admin\')')
+    expect(bootstrapFix).not.toContain('set_config')
   })
 })

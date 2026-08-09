@@ -15,6 +15,18 @@ test('login renders the complete authentication form', async ({ page }) => {
   await expect(page.getByRole('link', { name: 'Esqueci minha senha' })).toBeVisible()
 })
 
+test('forgot-password page renders publicly', async ({ page }) => {
+  await page.goto('/esqueci-minha-senha')
+  await expect(page.getByRole('heading', { name: 'Esqueci minha senha' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Enviar link de recuperação' })).toBeVisible()
+})
+
+test('recovery page is public and rejects a missing session safely', async ({ page }) => {
+  await page.goto('/redefinir-senha')
+  await expect(page).toHaveURL(/\/redefinir-senha$/)
+  await expect(page.getByText('Este link de recuperação expirou ou não é mais válido.')).toBeVisible()
+})
+
 test('admin area redirects anonymous visitors to login', async ({ page }) => {
   await page.goto('/admin')
   await expect(page).toHaveURL(/\/login$/)
@@ -22,6 +34,11 @@ test('admin area redirects anonymous visitors to login', async ({ page }) => {
 
 test('protected student area redirects visitors', async ({ page }) => {
   await page.goto('/aluno')
+  await expect(page).toHaveURL(/\/login$/)
+})
+
+test('account security redirects anonymous visitors to login', async ({ page }) => {
+  await page.goto('/conta/seguranca')
   await expect(page).toHaveURL(/\/login$/)
 })
 

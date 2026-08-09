@@ -4,10 +4,12 @@
 .nuxt
 .nitro
 .cache
+.nuxtrc
 dist
 coverage
 playwright-report
 test-results
+supabase/.temp
 
 # Node dependencies
 node_modules
