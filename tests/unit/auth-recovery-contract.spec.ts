@@ -19,7 +19,7 @@ describe('Supabase recovery contract', () => {
 
   it('updates only the password for the current recovery session', () => {
     const source = readFileSync(resolve('app/composables/useAuth.ts'), 'utf8')
-    expect(source).toContain('client.auth.updateUser({ password })')
+    expect(source).toContain('client.auth.updateUser({ password,')
     expect(source).not.toContain('user_id')
     expect(source).not.toContain('auth.users')
   })

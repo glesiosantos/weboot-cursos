@@ -13,7 +13,12 @@ major_version = 17
 [auth]
 enabled = true
 site_url = "http://localhost:3000"
-additional_redirect_urls = ["http://127.0.0.1:3000/confirmacao"]
+additional_redirect_urls = [
+  "http://localhost:3000/confirmacao",
+  "http://localhost:3000/redefinir-senha",
+  "http://127.0.0.1:3000/confirmacao",
+  "http://127.0.0.1:3000/redefinir-senha",
+]
 enable_signup = true
 
 [storage]

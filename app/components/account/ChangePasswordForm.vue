@@ -8,12 +8,14 @@ const props = withDefaults(defineProps<{
 })
 
 const form = reactive({ newPassword: '', passwordConfirmation: '' })
+const nonce = ref('')
+const awaitingReauthentication = ref(false)
 const errors = ref<ReturnType<typeof getChangePasswordErrors>>({})
 const feedback = ref<{ type: 'error' | 'success', title: string, description?: string }>()
 const loading = ref(false)
 const showNewPassword = ref(false)
 const showConfirmation = ref(false)
-const { updatePassword, signOut } = useAuth()
+const { updatePassword, reauthenticate, signOut } = useAuth()
 const authFeedback = useState<string | undefined>('auth-feedback')
 
 const passwordIsLongEnough = computed(() => form.newPassword.length >= 8)
@@ -28,7 +30,21 @@ const submit = async () => {
 
   loading.value = true
   try {
-    const result = await updatePassword(form.newPassword)
+    const result = await updatePassword(form.newPassword, nonce.value || undefined)
+    if (result.reauthenticationNeeded) {
+      const { error } = await reauthenticate()
+      if (error) {
+        feedback.value = { type: 'error', title: 'Não foi possível enviar o código de confirmação. Tente novamente.' }
+        return
+      }
+      awaitingReauthentication.value = true
+      feedback.value = {
+        type: 'success',
+        title: 'Confirme que é você.',
+        description: 'Enviamos um código de 6 dígitos para seu email. Informe-o abaixo para concluir a alteração.',
+      }
+      return
+    }
     if (result.sessionExpired) {
       feedback.value = { type: 'error', title: 'Sua sessão expirou. Entre novamente para continuar.' }
       await navigateTo('/login')
@@ -41,6 +57,8 @@ const submit = async () => {
 
     form.newPassword = ''
     form.passwordConfirmation = ''
+    nonce.value = ''
+    awaitingReauthentication.value = false
     errors.value = {}
     feedback.value = {
       type: 'success',
@@ -159,6 +177,23 @@ const submit = async () => {
         <span aria-hidden="true">{{ passwordsMatch ? '✓' : '○' }}</span> Senhas coincidem
       </li>
     </ul>
+
+    <div v-if="awaitingReauthentication">
+      <label
+        for="reauthentication-code"
+        class="mb-2 block font-medium"
+      >Código de confirmação</label>
+      <input
+        id="reauthentication-code"
+        v-model="nonce"
+        class="w-full rounded-xl border border-border bg-canvas px-4 py-3 outline-none focus:border-primary-500"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        pattern="[0-9]{6}"
+        maxlength="6"
+        required
+      >
+    </div>
 
     <div
       aria-live="polite"

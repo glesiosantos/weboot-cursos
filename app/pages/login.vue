@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import type { Database } from '~/types/database.types'
+
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')
 const loading = ref(false)
 const { signIn } = useAuth()
+const client = useSupabaseClient<Database>()
 const authFeedback = useState<string | undefined>('auth-feedback')
 
 onBeforeUnmount(() => {
@@ -14,11 +17,18 @@ const submit = async () => {
   errorMessage.value = ''
   loading.value = true
   try {
-    const { error } = await signIn({ email: email.value, password: password.value })
+    const { data: authData, error } = await signIn({ email: email.value, password: password.value })
     if (error) {
       throw error
     }
-    await navigateTo('/aluno')
+
+    const { data: profile } = await client
+      .from('profiles')
+      .select('role')
+      .eq('id', authData.user.id)
+      .single()
+
+    await navigateTo(getAuthenticatedHome(profile?.role))
   }
   catch {
     errorMessage.value = 'Não foi possível entrar. Confira suas credenciais.'

@@ -3,13 +3,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import ChangePasswordForm from '../../app/components/account/ChangePasswordForm.vue'
 import { changePasswordSchema } from '../../app/utils/password'
 
-const { updatePassword, signOut, navigateTo } = vi.hoisted(() => ({
+const { updatePassword, reauthenticate, signOut, navigateTo } = vi.hoisted(() => ({
   updatePassword: vi.fn(),
+  reauthenticate: vi.fn(),
   signOut: vi.fn(),
   navigateTo: vi.fn(),
 }))
 
-mockNuxtImport('useAuth', () => () => ({ updatePassword, signOut }))
+mockNuxtImport('useAuth', () => () => ({ updatePassword, reauthenticate, signOut }))
 mockNuxtImport('navigateTo', () => navigateTo)
 
 const fillValidPassword = async (wrapper: Awaited<ReturnType<typeof mountSuspended>>) => {
@@ -21,6 +22,7 @@ const fillValidPassword = async (wrapper: Awaited<ReturnType<typeof mountSuspend
 describe('authenticated password change', () => {
   afterEach(() => {
     updatePassword.mockReset()
+    reauthenticate.mockReset()
     signOut.mockReset()
     navigateTo.mockReset()
   })
@@ -51,7 +53,7 @@ describe('authenticated password change', () => {
     await wrapper.get('form').trigger('submit')
 
     expect(updatePassword).toHaveBeenCalledOnce()
-    expect(updatePassword).toHaveBeenCalledWith('nova-senha-segura')
+    expect(updatePassword).toHaveBeenCalledWith('nova-senha-segura', undefined)
     expect(updatePassword.mock.calls[0]).not.toContain(expect.objectContaining({ user_id: expect.anything() }))
   })
 
@@ -94,10 +96,28 @@ describe('authenticated password change', () => {
     await fillValidPassword(wrapper)
     await wrapper.get('form').trigger('submit')
 
-    expect(updatePassword).toHaveBeenCalledWith('nova-senha-segura')
+    expect(updatePassword).toHaveBeenCalledWith('nova-senha-segura', undefined)
     expect(signOut).toHaveBeenCalledOnce()
     expect(navigateTo).toHaveBeenCalledWith('/login')
     expect(wrapper.text()).toContain('Senha redefinida com sucesso.')
     expect(useState<string>('auth-feedback').value).toBe('Senha alterada. Entre novamente com sua nova senha.')
+  })
+
+  it('requests and accepts a reauthentication code when secure password change requires it', async () => {
+    updatePassword
+      .mockResolvedValueOnce({ error: new Error('reauthentication needed'), sessionExpired: false, reauthenticationNeeded: true })
+      .mockResolvedValueOnce({ error: null, sessionExpired: false, reauthenticationNeeded: false })
+    reauthenticate.mockResolvedValue({ error: null })
+    const wrapper = await mountSuspended(ChangePasswordForm)
+    await fillValidPassword(wrapper)
+    await wrapper.get('form').trigger('submit')
+    await nextTick()
+
+    expect(reauthenticate).toHaveBeenCalledOnce()
+    expect(wrapper.text()).toContain('Código de confirmação')
+    await wrapper.get('#reauthentication-code').setValue('123456')
+    await wrapper.get('form').trigger('submit')
+
+    expect(updatePassword).toHaveBeenLastCalledWith('nova-senha-segura', '123456')
   })
 })

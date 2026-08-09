@@ -32,7 +32,7 @@ export const useAuth = () => {
     })
   }
 
-  const updatePassword = async (newPassword: string) => {
+  const updatePassword = async (newPassword: string, nonce?: string) => {
     const password = z.string().min(8).max(128).parse(newPassword)
     const { data: { session }, error: sessionError } = await client.auth.getSession()
 
@@ -40,13 +40,15 @@ export const useAuth = () => {
       return { error: sessionError ?? new Error('AUTH_SESSION_MISSING'), sessionExpired: true }
     }
 
-    const { error } = await client.auth.updateUser({ password })
+    const { error } = await client.auth.updateUser({ password, ...(nonce ? { nonce } : {}) })
     const errorCode = error?.code ?? ''
     const sessionExpired = errorCode.includes('session') || errorCode.includes('refresh_token')
-    return { error, sessionExpired }
+    return { error, sessionExpired, reauthenticationNeeded: errorCode === 'reauthentication_needed' }
   }
+
+  const reauthenticate = async () => await client.auth.reauthenticate()
 
   const signOut = async () => await client.auth.signOut()
 
-  return { signIn, signUp, resetPassword, updatePassword, signOut }
+  return { signIn, signUp, resetPassword, updatePassword, reauthenticate, signOut }
 }
