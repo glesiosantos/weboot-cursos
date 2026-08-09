@@ -69,7 +69,7 @@ const submit = async () => {
           class="w-full rounded-lg border border-slate-300 px-4 py-3"
           type="password"
           autocomplete="new-password"
-          minlength="8"
+          minlength="6"
           required
         >
       </div>

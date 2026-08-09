@@ -19,16 +19,24 @@ const submit = async () => {
   try {
     const { data: authData, error } = await signIn({ email: email.value, password: password.value })
     if (error) {
+      if (error.code === 'email_not_confirmed') {
+        errorMessage.value = 'Confirme seu email antes de entrar.'
+        return
+      }
       throw error
     }
 
-    const { data: profile } = await client
+    const { data: profile, error: profileError } = await client
       .from('profiles')
       .select('role')
       .eq('id', authData.user.id)
       .single()
 
-    await navigateTo(getAuthenticatedHome(profile?.role))
+    if (profileError || !profile) {
+      throw profileError ?? new Error('PROFILE_NOT_FOUND')
+    }
+
+    await navigateTo(getAuthenticatedHome(profile.role))
   }
   catch {
     errorMessage.value = 'Não foi possível entrar. Confira suas credenciais.'
@@ -96,7 +104,6 @@ useSeoMeta({ title: 'Entrar | Weboot Cursos', robots: 'noindex, nofollow' })
             class="w-full rounded-xl border border-border bg-canvas px-4 py-3 outline-none focus:border-primary-500"
             type="password"
             autocomplete="current-password"
-            minlength="8"
             required
           >
         </div>

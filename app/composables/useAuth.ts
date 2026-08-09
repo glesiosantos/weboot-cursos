@@ -1,21 +1,27 @@
 import { z } from 'zod'
 import { getPasswordRecoveryRedirect } from '~/utils/auth-redirect'
 
-const credentialsSchema = z.object({
+export const signInSchema = z.object({
   email: z.email('Informe um email válido'),
-  password: z.string().min(8, 'A senha deve ter no mínimo 8 caracteres'),
+  password: z.string().min(1, 'Informe sua senha'),
+})
+
+export const signUpSchema = z.object({
+  email: z.email('Informe um email válido'),
+  password: z.string().min(6, 'A senha deve ter no mínimo 6 caracteres'),
+  name: z.string().trim().min(2).max(120),
 })
 
 export const useAuth = () => {
   const client = useSupabaseClient()
 
   const signIn = async (input: { email: string, password: string }) => {
-    const credentials = credentialsSchema.parse(input)
+    const credentials = signInSchema.parse(input)
     return await client.auth.signInWithPassword(credentials)
   }
 
   const signUp = async (input: { name: string, email: string, password: string }) => {
-    const credentials = credentialsSchema.extend({ name: z.string().trim().min(2).max(120) }).parse(input)
+    const credentials = signUpSchema.parse(input)
     return await client.auth.signUp({
       email: credentials.email,
       password: credentials.password,
@@ -33,7 +39,7 @@ export const useAuth = () => {
   }
 
   const updatePassword = async (newPassword: string, nonce?: string) => {
-    const password = z.string().min(8).max(128).parse(newPassword)
+    const password = z.string().min(6).max(128).parse(newPassword)
     const { data: { session }, error: sessionError } = await client.auth.getSession()
 
     if (sessionError || !session) {
