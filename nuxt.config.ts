@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
-    supabaseServiceRoleKey: '',
+    supabaseSecretKey: '',
     asaasApiKey: '',
     asaasApiUrl: 'https://api-sandbox.asaas.com/v3',
     asaasWebhookToken: '',

@@ -36,7 +36,7 @@ Copie a URL e as chaves locais exibidas pelo Supabase para `.env`. Nunca version
 ## Variáveis
 
 - `NUXT_PUBLIC_SUPABASE_URL` e `NUXT_PUBLIC_SUPABASE_KEY`: endpoint e chave anon usados pelo módulo Supabase
-- `NUXT_SUPABASE_SERVICE_KEY`: service role esperada internamente pelo módulo, somente servidor
+- `NUXT_SUPABASE_SECRET_KEY`: chave secreta esperada internamente pelo módulo, somente servidor
 - `NUXT_PUBLIC_APP_URL`: origem pública da aplicação
 - `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_API_URL`, `NUXT_ASAAS_WEBHOOK_TOKEN`: integração futura, Sandbox por padrão
 

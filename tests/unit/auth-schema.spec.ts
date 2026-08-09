@@ -4,6 +4,7 @@ import { resolve } from 'node:path'
 
 const migration = readFileSync(resolve('supabase/migrations/20260809000200_rls_and_storage.sql'), 'utf8')
 const schema = readFileSync(resolve('supabase/migrations/20260809000100_initial_schema.sql'), 'utf8')
+const hardening = readFileSync(resolve('supabase/migrations/20260809000300_foundation_hardening.sql'), 'utf8')
 
 describe('authorization schema', () => {
   it.each(['profiles', 'orders', 'enrollments', 'lesson_progress', 'certificates', 'audit_logs'])(
@@ -34,5 +35,14 @@ describe('authorization schema', () => {
   it('requires an active enrollment for private materials', () => {
     expect(migration).toContain('e.status = \'ACTIVE\'')
     expect(migration).toContain('bucket_id in (\'course-materials\',\'course-videos\')')
+  })
+
+  it('does not expose draft courses to anonymous visitors', () => {
+    expect(hardening).toContain('to anon, authenticated')
+    expect(hardening).toContain('status = \'PUBLISHED\' and archived_at is null')
+  })
+
+  it('keeps administrator bootstrap unavailable through the API roles', () => {
+    expect(hardening).toContain('revoke all on function public.bootstrap_admin(text) from public, anon, authenticated')
   })
 })

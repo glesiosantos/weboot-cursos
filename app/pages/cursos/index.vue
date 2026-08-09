@@ -1,14 +1,17 @@
 <script setup lang="ts">
 useSeoMeta({ title: 'Cursos | Weboot Cursos', description: 'Conheça nossos cursos online e presenciais.' })
+const { data: courses, pending } = usePublishedCourses()
 </script>
 
 <template>
-  <section class="mx-auto max-w-7xl px-4 py-16">
-    <h1 class="text-3xl font-bold">
-      Cursos
-    </h1>
-    <div class="mt-8 rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center text-slate-600">
-      O catálogo será disponibilizado na Fase 2.
-    </div>
-  </section>
+  <div>
+    <section class="page-shell pt-14 sm:pt-20">
+      <AppBadge>CATÁLOGO WEBOOT</AppBadge><h1 class="mt-5 text-4xl font-black tracking-tight sm:text-6xl">
+        Cursos para colocar<br>conhecimento em prática.
+      </h1>
+    </section><FeaturedCourses
+      :courses="courses ?? []"
+      :loading="pending"
+    />
+  </div>
 </template>
