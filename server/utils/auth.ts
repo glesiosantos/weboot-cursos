@@ -18,7 +18,7 @@ export const requireRole = async (event: H3Event, allowedRoles: AppRole[]) => {
   const { data: profile, error } = await client
     .from('profiles')
     .select('role')
-    .eq('id', user.id)
+    .eq('id', user.sub)
     .single()
 
   if (error || !profile || !allowedRoles.includes(profile.role)) {

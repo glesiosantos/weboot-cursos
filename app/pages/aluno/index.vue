@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'authenticated', middleware: 'auth' })
+definePageMeta({ layout: 'authenticated', middleware: ['auth', 'student'] })
 const user = useSupabaseUser()
 </script>
 

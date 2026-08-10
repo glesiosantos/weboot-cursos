@@ -6,7 +6,7 @@ export default defineNuxtRouteMiddleware(async () => {
     return navigateTo('/login')
   }
   const client = useSupabaseClient<Database>()
-  const { data, error } = await client.from('profiles').select('role').eq('id', user.value.id).single()
+  const { data, error } = await client.from('profiles').select('role').eq('id', user.value.sub).single()
   if (error || !canAccessAdmin(data?.role)) {
     return navigateTo('/aluno')
   }
