@@ -2,6 +2,20 @@ import { z } from 'zod'
 
 export const courseStatusSchema = z.enum(['DRAFT', 'PUBLISHED', 'REGISTRATION_CLOSED', 'IN_PROGRESS', 'COMPLETED', 'CANCELED'])
 export const courseTypeSchema = z.enum(['ONLINE', 'PRESENCIAL'])
+export const pricingTypeSchema = z.enum(['FIXED', 'BATCHES'])
+export const courseBatchSchema = z.object({
+  name: z.string().trim().min(1, 'Nome do lote obrigatório').max(120),
+  position: z.coerce.number().int().positive(),
+  price: z.coerce.number().min(0),
+  max_sales: z.coerce.number().int().positive().nullable().optional(),
+  starts_at: z.iso.datetime().nullable().optional(), ends_at: z.iso.datetime().nullable().optional(),
+  status: z.enum(['DRAFT', 'SCHEDULED', 'ACTIVE', 'SOLD_OUT', 'EXPIRED', 'DISABLED']).default('DRAFT'),
+  activation_mode: z.enum(['QUANTITY', 'DATE', 'QUANTITY_OR_DATE']),
+}).superRefine((value, ctx) => {
+  if (value.starts_at && value.ends_at && new Date(value.ends_at) <= new Date(value.starts_at)) { ctx.addIssue({ code: 'custom', path: ['ends_at'], message: 'O fim do lote deve ser posterior ao início' }) }
+  if (value.activation_mode !== 'DATE' && !value.max_sales) { ctx.addIssue({ code: 'custom', path: ['max_sales'], message: 'O limite de vendas é obrigatório neste modo' }) }
+  if (value.activation_mode !== 'QUANTITY' && !value.starts_at && !value.ends_at) { ctx.addIssue({ code: 'custom', path: ['starts_at'], message: 'Informe ao menos uma data neste modo' }) }
+})
 export const slugSchema = z.string().min(1).max(140).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug inválido')
 
 export const presentialDetailsSchema = z.object({
@@ -19,10 +33,22 @@ export const courseSchema = z.object({
   short_description: z.string().trim().max(280).default(''), description: z.string().trim().default(''),
   course_type: courseTypeSchema, instructor_id: z.uuid().nullable().optional(), workload_hours: z.coerce.number().positive(),
   price: z.coerce.number().min(0), promotional_price: z.coerce.number().min(0).nullable().optional(),
+  pricing_type: pricingTypeSchema.default('FIXED'), batches: z.array(courseBatchSchema).default([]),
   status: courseStatusSchema.default('DRAFT'), program: z.string().trim().nullable().optional(), requirements: z.string().trim().nullable().optional(),
   target_audience: z.string().trim().nullable().optional(), presential: presentialDetailsSchema.nullable().optional(),
 }).superRefine((value, ctx) => {
-  if (value.promotional_price !== null && value.promotional_price !== undefined && value.promotional_price > value.price) { ctx.addIssue({ code: 'custom', path: ['promotional_price'], message: 'O preço promocional não pode superar o preço' }) }
+  if (value.pricing_type === 'FIXED' && value.promotional_price !== null && value.promotional_price !== undefined && value.promotional_price > value.price) { ctx.addIssue({ code: 'custom', path: ['promotional_price'], message: 'O preço promocional não pode superar o preço' }) }
+  if (value.pricing_type === 'BATCHES') {
+    if (!value.batches.length) { ctx.addIssue({ code: 'custom', path: ['batches'], message: 'Adicione ao menos um lote' }) }
+    if (new Set(value.batches.map(batch => batch.position)).size !== value.batches.length) { ctx.addIssue({ code: 'custom', path: ['batches'], message: 'As posições dos lotes não podem se repetir' }) }
+    if (value.batches.filter(batch => batch.status === 'ACTIVE').length > 1) { ctx.addIssue({ code: 'custom', path: ['batches'], message: 'Apenas um lote pode estar ativo' }) }
+    const dated = value.batches.filter(batch => batch.activation_mode !== 'QUANTITY' && batch.starts_at && batch.ends_at && !['DISABLED', 'EXPIRED', 'SOLD_OUT'].includes(batch.status))
+    for (let index = 0; index < dated.length; index++) {
+      for (let other = index + 1; other < dated.length; other++) {
+        if (new Date(dated[index]!.starts_at!).getTime() < new Date(dated[other]!.ends_at!).getTime() && new Date(dated[other]!.starts_at!).getTime() < new Date(dated[index]!.ends_at!).getTime()) { ctx.addIssue({ code: 'custom', path: ['batches'], message: 'Os períodos dos lotes não podem se sobrepor' }); return }
+      }
+    }
+  }
   if (value.status === 'PUBLISHED') {
     if (!value.description) { ctx.addIssue({ code: 'custom', path: ['description'], message: 'Descrição obrigatória para publicar' }) }
     if (!value.instructor_id) { ctx.addIssue({ code: 'custom', path: ['instructor_id'], message: 'Instrutor obrigatório para publicar' }) }

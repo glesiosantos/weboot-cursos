@@ -32,10 +32,10 @@ defineProps<{ course: Course }>()
       </div><div class="mt-5 flex items-center justify-between border-t border-border pt-4">
         <div>
           <span
-            v-if="course.promotional_price !== null"
+            v-if="course.pricing_type !== 'BATCHES' && course.promotional_price !== null"
             class="block text-xs text-muted line-through"
           >{{ formatPrice(course.price) }}</span><p class="font-extrabold">
-            {{ formatPrice(course.promotional_price ?? course.price) }}
+            {{ course.public_price === null ? 'Lotes indisponíveis' : formatPrice(course.public_price ?? course.promotional_price ?? course.price) }}
           </p>
         </div><AppButton
           :to="`/cursos/${course.slug}`"

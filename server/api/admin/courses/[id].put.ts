@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const id = z.uuid().parse(getRouterParam(event, 'id'))
   const parsed = courseSchema.safeParse(await readBody(event))
   if (!parsed.success) { throw createError({ statusCode: 422, statusMessage: parsed.error.issues.map(issue => issue.message).join('; '), data: parsed.error.flatten() }) }
-  const { presential, ...course } = parsed.data
+  const { presential, batches, ...course } = parsed.data
   const client = await serverSupabaseClient<Database>(event)
-  return saveCourse(client, course, presential ? { ...presential, course_id: id } : null, id)
+  return saveCourse(client, course, presential ? { ...presential, course_id: id } : null, batches, id)
 })

@@ -10,6 +10,9 @@ export type UserRole = Database['public']['Enums']['user_role']
 export type CourseType = Database['public']['Enums']['course_type']
 export type CourseStatus = Database['public']['Enums']['course_status']
 export type LessonType = Database['public']['Enums']['lesson_type']
+export type CoursePricingType = Database['public']['Enums']['course_pricing_type']
+export type CourseBatchStatus = Database['public']['Enums']['course_batch_status']
+export type CourseBatchActivationMode = Database['public']['Enums']['course_batch_activation_mode']
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
@@ -431,6 +434,12 @@ export type Database = {
           },
         ]
       }
+      course_batches: {
+        Row: { id: string, course_id: string, name: string, position: number, price: number, max_sales: number | null, starts_at: string | null, ends_at: string | null, status: Database['public']['Enums']['course_batch_status'], activation_mode: Database['public']['Enums']['course_batch_activation_mode'], created_at: string, updated_at: string }
+        Insert: { id?: string, course_id: string, name: string, position: number, price: number, max_sales?: number | null, starts_at?: string | null, ends_at?: string | null, status?: Database['public']['Enums']['course_batch_status'], activation_mode: Database['public']['Enums']['course_batch_activation_mode'], created_at?: string, updated_at?: string }
+        Update: { id?: string, course_id?: string, name?: string, position?: number, price?: number, max_sales?: number | null, starts_at?: string | null, ends_at?: string | null, status?: Database['public']['Enums']['course_batch_status'], activation_mode?: Database['public']['Enums']['course_batch_activation_mode'], created_at?: string, updated_at?: string }
+        Relationships: [{ foreignKeyName: 'course_batches_course_id_fkey', columns: ['course_id'], isOneToOne: false, referencedRelation: 'courses', referencedColumns: ['id'] }]
+      }
       courses: {
         Row: {
           additional_info: string | null
@@ -443,6 +452,7 @@ export type Database = {
           id: string
           instructor_id: string | null
           price: number
+          pricing_type: Database['public']['Enums']['course_pricing_type']
           program: string | null
           promotional_price: number | null
           published_at: string | null
@@ -466,6 +476,7 @@ export type Database = {
           id?: string
           instructor_id?: string | null
           price: number
+          pricing_type?: Database['public']['Enums']['course_pricing_type']
           program?: string | null
           promotional_price?: number | null
           published_at?: string | null
@@ -489,6 +500,7 @@ export type Database = {
           id?: string
           instructor_id?: string | null
           price?: number
+          pricing_type?: Database['public']['Enums']['course_pricing_type']
           program?: string | null
           promotional_price?: number | null
           published_at?: string | null
@@ -941,6 +953,7 @@ export type Database = {
     }
     Functions: {
       bootstrap_admin: { Args: { target_email: string }, Returns: string }
+      get_current_course_batch: { Args: { target_course_id: string, reference_at?: string }, Returns: Database['public']['Tables']['course_batches']['Row'][] }
       get_published_course_lessons: {
         Args: { target_course_id: string }
         Returns: {
@@ -956,10 +969,14 @@ export type Database = {
         }[]
       }
       is_admin: { Args: never, Returns: boolean }
+      replace_course_batches: { Args: { target_course_id: string, batches: Json }, Returns: undefined }
     }
     Enums: {
       attendance_status: 'PRESENT' | 'ABSENT' | 'JUSTIFIED'
       coupon_type: 'PERCENTAGE' | 'FIXED'
+      course_batch_activation_mode: 'QUANTITY' | 'DATE' | 'QUANTITY_OR_DATE'
+      course_batch_status: 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'SOLD_OUT' | 'EXPIRED' | 'DISABLED'
+      course_pricing_type: 'FIXED' | 'BATCHES'
       course_status:
         | 'DRAFT'
         | 'PUBLISHED'
@@ -1565,6 +1582,9 @@ export const Constants = {
     Enums: {
       attendance_status: ['PRESENT', 'ABSENT', 'JUSTIFIED'],
       coupon_type: ['PERCENTAGE', 'FIXED'],
+      course_batch_activation_mode: ['QUANTITY', 'DATE', 'QUANTITY_OR_DATE'],
+      course_batch_status: ['DRAFT', 'SCHEDULED', 'ACTIVE', 'SOLD_OUT', 'EXPIRED', 'DISABLED'],
+      course_pricing_type: ['FIXED', 'BATCHES'],
       course_status: [
         'DRAFT',
         'PUBLISHED',

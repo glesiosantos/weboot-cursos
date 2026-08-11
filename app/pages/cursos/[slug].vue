@@ -94,12 +94,17 @@ useHead({ link: [{ rel: 'canonical', href: canonical }] })
         <p class="text-sm text-muted">
           Investimento
         </p><p
-          v-if="course.promotional_price !== null"
+          v-if="course.pricing_type !== 'BATCHES' && course.promotional_price !== null"
           class="mt-1 text-sm text-muted line-through"
         >
           {{ formatPrice(course.price) }}
         </p><p class="text-3xl font-black">
-          {{ formatPrice(course.promotional_price ?? course.price) }}
+          {{ course.public_price === null ? 'Lotes indisponíveis' : formatPrice(course.public_price ?? course.promotional_price ?? course.price) }}
+        </p><p
+          v-if="course.current_batch"
+          class="mt-1 text-sm font-bold text-primary"
+        >
+          {{ course.current_batch.name }}
         </p>
         <dl class="mt-6 space-y-3 border-y border-border py-5 text-sm">
           <div class="flex justify-between">

@@ -1,4 +1,4 @@
-import type { CourseStatus, CourseType, LessonType } from './database.types'
+import type { CoursePricingType, CourseStatus, CourseType, LessonType } from './database.types'
 
 export type CourseMode = 'TODOS' | CourseType
 
@@ -30,6 +30,9 @@ export interface Course {
   workload_hours: number
   price: number
   promotional_price: number | null
+  pricing_type?: CoursePricingType
+  current_batch?: { id: string, name: string, position: number, price: number, max_sales: number | null, starts_at: string | null, ends_at: string | null } | null
+  public_price?: number | null
   cover_url: string | null
   instructor_name: string | null
   instructor_bio?: string | null

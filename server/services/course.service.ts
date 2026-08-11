@@ -22,7 +22,9 @@ export const uniqueCourseSlug = async (client: Client, requested: string, except
   return fail('Não foi possível gerar um slug único', 409)
 }
 
-export const saveCourse = async (client: Client, values: CourseInput, presential?: PresentialInput | null, id?: string) => {
+type BatchInput = Database['public']['Tables']['course_batches']['Insert']
+
+export const saveCourse = async (client: Client, values: CourseInput, presential?: PresentialInput | null, batches: Omit<BatchInput, 'course_id'>[] = [], id?: string) => {
   const slug = await uniqueCourseSlug(client, values.slug, id)
   const payload = { ...values, slug }
   const result = id
@@ -38,6 +40,8 @@ export const saveCourse = async (client: Client, values: CourseInput, presential
     const { error } = await client.from('course_presential_details').delete().eq('course_id', course.id)
     if (error) { fail(error.message) }
   }
+  const { error: batchError } = await client.rpc('replace_course_batches', { target_course_id: course.id, batches })
+  if (batchError) { fail(batchError.message) }
   return course
 }
 
@@ -52,6 +56,10 @@ export const publicationIssues = async (client: Client, id: string) => {
   if (!validCourse.instructor_id) { issues.push('Instrutor') }
   if (validCourse.workload_hours <= 0) { issues.push('Carga horária') }
   if (validCourse.price < 0) { issues.push('Preço') }
+  if (validCourse.pricing_type === 'BATCHES') {
+    const { data } = await client.from('course_batches').select('id').eq('course_id', id).in('status', ['ACTIVE', 'SCHEDULED']).limit(1)
+    if (!data?.length) { issues.push('Ao menos um lote ativo ou agendado') }
+  }
   if (validCourse.course_type === 'PRESENCIAL') {
     const { data } = await client.from('course_presential_details').select('course_id').eq('course_id', id).maybeSingle()
     if (!data) { issues.push('Local, datas e capacidade') }
@@ -96,6 +104,12 @@ export const duplicateCourse = async (client: Client, id: string) => {
         if (lessonError) { fail(lessonError.message) }
       }
     }
+  }
+  const { data: sourceBatches, error: sourceBatchError } = await client.from('course_batches').select('name,position,price,max_sales,starts_at,ends_at,status,activation_mode').eq('course_id', id).order('position')
+  if (sourceBatchError) { fail(sourceBatchError.message) }
+  if (sourceBatches?.length) {
+    const { error: copiedBatchError } = await client.from('course_batches').insert(sourceBatches.map(batch => ({ ...batch, course_id: validCreated.id, status: 'DRAFT' as const })))
+    if (copiedBatchError) { fail(copiedBatchError.message) }
   }
   return validCreated
 }
