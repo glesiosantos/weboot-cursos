@@ -25,7 +25,7 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: '/login',
       callback: '/confirmacao',
-      exclude: ['/', '/cursos', '/login', '/cadastro', '/esqueci-minha-senha', '/redefinir-senha', '/confirmacao'],
+      exclude: ['/', '/cursos', '/cursos/**', '/api/courses/**', '/login', '/cadastro', '/esqueci-minha-senha', '/redefinir-senha', '/confirmacao'],
     },
   },
 })

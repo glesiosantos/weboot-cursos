@@ -1,0 +1,224 @@
+<script setup lang="ts">
+import type { CourseStatus, CourseType } from '~/types/database.types'
+
+interface FormData { title: string, slug: string, short_description: string, description: string, course_type: CourseType, instructor_id: string | null, workload_hours: number, price: number, promotional_price: number | null, status: CourseStatus, program: string | null, requirements: string | null, target_audience: string | null, presential: { location_name: string, city: string, state: string, starts_at: string, ends_at: string, registration_deadline: string | null, max_students: number } | null }
+const props = defineProps<{ courseId?: string, initial?: Partial<FormData> }>()
+const emit = defineEmits<{ saved: [id: string] }>()
+const { data: instructors } = await useAsyncData('admin-instructors', async () => {
+  const client = useSupabaseClient()
+  const { data, error } = await client.from('instructors').select('id,name,active').order('name')
+  if (error) { throw error }
+  return data
+})
+const form = reactive<FormData>({ title: '', slug: '', short_description: '', description: '', course_type: 'ONLINE', instructor_id: null, workload_hours: 1, price: 0, promotional_price: null, status: 'DRAFT', program: null, requirements: null, target_audience: null, presential: null, ...props.initial })
+const dirty = ref(false); const saving = ref(false); const message = ref(''); const errorMessage = ref(''); const slugTouched = ref(Boolean(props.initial?.slug))
+const cover = ref<File | null>(null)
+watch(form, () => { dirty.value = true }, { deep: true })
+watch(() => form.title, (value) => { if (!slugTouched.value) { form.slug = normalizeSlug(value) } })
+watch(() => form.course_type, (value) => { if (value === 'PRESENCIAL' && !form.presential) { form.presential = { location_name: '', city: '', state: '', starts_at: '', ends_at: '', registration_deadline: null, max_students: 1 } } if (value === 'ONLINE') { form.presential = null } })
+const beforeUnload = (event: BeforeUnloadEvent) => { if (dirty.value) { event.preventDefault() } }
+onMounted(() => window.addEventListener('beforeunload', beforeUnload)); onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
+onBeforeRouteLeave(() => !dirty.value || window.confirm('Você possui alterações não salvas. Deseja sair?'))
+const asIso = (value: string | null) => value ? new Date(value).toISOString() : null
+const submit = async () => {
+  saving.value = true; errorMessage.value = ''; message.value = ''
+  try {
+    const payload = { ...form, presential: form.presential ? { ...form.presential, starts_at: asIso(form.presential.starts_at), ends_at: asIso(form.presential.ends_at), registration_deadline: asIso(form.presential.registration_deadline) } : null }
+    const saved = await $fetch<{ id: string }>(props.courseId ? `/api/admin/courses/${props.courseId}` : '/api/admin/courses', { method: props.courseId ? 'PUT' : 'POST', body: payload })
+    dirty.value = false; message.value = 'Curso salvo com sucesso.'; emit('saved', saved.id)
+  }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Não foi possível salvar o curso.' }
+  finally { saving.value = false }
+}
+const uploadCover = async () => {
+  if (!props.courseId || !cover.value) { return }
+  const body = new FormData()
+  body.append('file', cover.value)
+  try { await $fetch(`/api/admin/courses/${props.courseId}/cover`, { method: 'POST', body }); message.value = 'Capa enviada com sucesso.'; cover.value = null }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao enviar a capa.' }
+}
+</script>
+
+<template>
+  <form
+    class="mt-8 space-y-6"
+    @submit.prevent="submit"
+  >
+    <section class="rounded-card border border-border bg-white p-6">
+      <h2 class="text-xl font-black">
+        Informações básicas
+      </h2><div class="mt-5 grid gap-5 sm:grid-cols-2">
+        <label class="font-bold sm:col-span-2">Título<input
+          v-model="form.title"
+          required
+          maxlength="160"
+          class="field"
+        ></label><label class="font-bold">Slug<input
+          v-model="form.slug"
+          required
+          pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+          class="field"
+          @input="slugTouched = true"
+        ></label><label class="font-bold">Modalidade<select
+          v-model="form.course_type"
+          class="field"
+        ><option value="ONLINE">Online</option><option value="PRESENCIAL">Presencial</option></select></label><label class="font-bold sm:col-span-2">Resumo<textarea
+          v-model="form.short_description"
+          maxlength="280"
+          rows="3"
+          class="field"
+        /></label><label class="font-bold sm:col-span-2">Descrição<textarea
+          v-model="form.description"
+          rows="7"
+          class="field"
+        /></label>
+      </div>
+    </section>
+    <section class="rounded-card border border-border bg-white p-6">
+      <h2 class="text-xl font-black">
+        Instrutor e investimento
+      </h2><div class="mt-5 grid gap-5 sm:grid-cols-3">
+        <label class="font-bold">Instrutor<select
+          v-model="form.instructor_id"
+          class="field"
+        ><option :value="null">Selecione</option><option
+          v-for="instructor in instructors"
+          :key="instructor.id"
+          :value="instructor.id"
+        >{{ instructor.name }}</option></select></label><label class="font-bold">Carga horária<input
+          v-model.number="form.workload_hours"
+          type="number"
+          min="0.01"
+          step="0.5"
+          required
+          class="field"
+        ></label><label class="font-bold">Preço<input
+          v-model.number="form.price"
+          type="number"
+          min="0"
+          step="0.01"
+          required
+          class="field"
+        ></label><label class="font-bold">Preço promocional<input
+          v-model.number="form.promotional_price"
+          type="number"
+          min="0"
+          step="0.01"
+          class="field"
+        ></label>
+      </div>
+    </section>
+    <section
+      v-if="form.presential"
+      class="rounded-card border border-border bg-white p-6"
+    >
+      <h2 class="text-xl font-black">
+        Detalhes presenciais
+      </h2><div class="mt-5 grid gap-5 sm:grid-cols-2">
+        <label class="font-bold">Local<input
+          v-model="form.presential.location_name"
+          required
+          class="field"
+        ></label><label class="font-bold">Cidade<input
+          v-model="form.presential.city"
+          required
+          class="field"
+        ></label><label class="font-bold">UF<input
+          v-model="form.presential.state"
+          required
+          maxlength="2"
+          class="field"
+        ></label><label class="font-bold">Vagas<input
+          v-model.number="form.presential.max_students"
+          type="number"
+          min="1"
+          required
+          class="field"
+        ></label><label class="font-bold">Início<input
+          v-model="form.presential.starts_at"
+          type="datetime-local"
+          required
+          class="field"
+        ></label><label class="font-bold">Término<input
+          v-model="form.presential.ends_at"
+          type="datetime-local"
+          required
+          class="field"
+        ></label><label class="font-bold">Fim das inscrições<input
+          v-model="form.presential.registration_deadline"
+          type="datetime-local"
+          class="field"
+        ></label>
+      </div>
+    </section>
+    <section class="rounded-card border border-border bg-white p-6">
+      <h2 class="text-xl font-black">
+        Detalhes públicos
+      </h2><div class="mt-5 grid gap-5">
+        <label class="font-bold">Programa<textarea
+          v-model="form.program"
+          rows="5"
+          class="field"
+        /></label><label class="font-bold">Requisitos<textarea
+          v-model="form.requirements"
+          rows="3"
+          class="field"
+        /></label><label class="font-bold">Público-alvo<textarea
+          v-model="form.target_audience"
+          rows="3"
+          class="field"
+        /></label>
+      </div>
+    </section>
+    <section
+      v-if="courseId"
+      class="rounded-card border border-border bg-white p-6"
+    >
+      <h2 class="text-xl font-black">
+        Capa
+      </h2><p class="mt-2 text-sm text-muted">
+        JPEG, PNG ou WEBP, até 5 MB.
+      </p><div class="mt-4 flex flex-wrap items-end gap-3">
+        <label class="font-bold">Arquivo<input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          class="field"
+          @change="cover = ($event.target as HTMLInputElement).files?.[0] ?? null"
+        ></label><AppButton
+          type="button"
+          variant="secondary"
+          :disabled="!cover"
+          @click="uploadCover"
+        >
+          Enviar capa
+        </AppButton>
+      </div>
+    </section>
+    <p
+      v-if="errorMessage"
+      role="alert"
+      class="rounded-xl bg-red-50 p-4 text-danger"
+    >
+      {{ errorMessage }}
+    </p><p
+      v-if="message"
+      role="status"
+      class="rounded-xl bg-primary-50 p-4 text-success"
+    >
+      {{ message }}
+    </p><div class="flex flex-wrap gap-3">
+      <AppButton
+        type="submit"
+        :disabled="saving"
+      >
+        {{ saving ? 'Salvando…' : 'Salvar rascunho' }}
+      </AppButton><AppButton
+        v-if="courseId && form.course_type === 'ONLINE'"
+        :to="`/admin/cursos/${courseId}/conteudo`"
+        variant="secondary"
+      >
+        Organizar conteúdo
+      </AppButton>
+    </div>
+  </form>
+</template>

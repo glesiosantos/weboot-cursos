@@ -2,7 +2,6 @@
 import type { Course } from '~/types/course'
 
 defineProps<{ course: Course }>()
-const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
 </script>
 
 <template>
@@ -29,14 +28,17 @@ const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL
       </p><p class="mt-4 text-sm text-muted">
         Por <b class="text-ink">{{ course.instructor_name || 'Equipe WeBoot' }}</b>
       </p><div class="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-muted">
-        <span>{{ Math.round(course.workload_minutes / 60) }}h</span><span v-if="course.starts_at">{{ new Date(course.starts_at).toLocaleDateString('pt-BR') }}</span>
+        <span>{{ course.workload_hours }}h</span><span v-if="course.presential">{{ formatCourseDate(course.presential.starts_at) }}</span><span v-if="course.presential">{{ course.presential.city }}/{{ course.presential.state }}</span>
       </div><div class="mt-5 flex items-center justify-between border-t border-border pt-4">
         <div>
-          <span class="text-xs text-muted">A partir de</span><p class="font-extrabold">
-            {{ money.format(course.promotional_price ?? course.price) }}
+          <span
+            v-if="course.promotional_price !== null"
+            class="block text-xs text-muted line-through"
+          >{{ formatPrice(course.price) }}</span><p class="font-extrabold">
+            {{ formatPrice(course.promotional_price ?? course.price) }}
           </p>
         </div><AppButton
-          to="/cursos"
+          :to="`/cursos/${course.slug}`"
           variant="secondary"
         >
           Ver curso
