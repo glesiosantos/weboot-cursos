@@ -68,6 +68,9 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
                     :to="`/admin/cursos/${course.id}`"
                     class="font-bold text-primary-700"
                   >Editar</NuxtLink><NuxtLink
+                    :to="`/admin/cursos/${course.id}/preview`"
+                    class="font-bold text-primary-700"
+                  >Visualizar preview</NuxtLink><NuxtLink
                     :to="`/cursos/${course.slug}`"
                     class="font-bold text-primary-700"
                   >Visualizar</NuxtLink><button
@@ -122,6 +125,11 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
               variant="secondary"
             >
               Editar
+            </AppButton><AppButton
+              :to="`/admin/cursos/${course.id}/preview`"
+              variant="secondary"
+            >
+              Preview
             </AppButton><button
               aria-label="Mais ações"
               class="min-h-11 rounded-xl border border-border px-4"

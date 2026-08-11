@@ -5,11 +5,7 @@ const props = defineProps<{ courses: Course[], loading?: boolean }>()
 const active = ref<CourseMode>('TODOS')
 const search = ref('')
 const tabs: CourseMode[] = ['TODOS', 'ONLINE', 'PRESENCIAL']
-const filtered = computed(() => props.courses.filter((course) => {
-  const modeMatches = active.value === 'TODOS' || course.course_type === active.value
-  const term = search.value.trim().toLocaleLowerCase('pt-BR')
-  return modeMatches && (!term || `${course.title} ${course.short_description}`.toLocaleLowerCase('pt-BR').includes(term))
-}))
+const filtered = computed(() => filterCourses(props.courses, active.value, search.value))
 </script>
 
 <template>

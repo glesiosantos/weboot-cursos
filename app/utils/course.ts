@@ -1,3 +1,11 @@
+import type { Course, CourseMode } from '~/types/course'
+
+export const filterCourses = (courses: Course[], mode: CourseMode, search: string) => courses.filter((course) => {
+  const modeMatches = mode === 'TODOS' || course.course_type === mode
+  const term = search.trim().toLocaleLowerCase('pt-BR')
+  return modeMatches && (!term || `${course.title} ${course.short_description}`.toLocaleLowerCase('pt-BR').includes(term))
+})
+
 export const normalizeSlug = (value: string) => value
   .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')

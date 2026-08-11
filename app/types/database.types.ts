@@ -449,6 +449,11 @@ export type Database = {
           cover_path: string | null
           created_at: string
           description: string
+          folder_alt_text: string | null
+          folder_mime_type: string | null
+          folder_original_name: string | null
+          folder_path: string | null
+          folder_updated_at: string | null
           id: string
           instructor_id: string | null
           price: number
@@ -474,6 +479,11 @@ export type Database = {
           cover_path?: string | null
           created_at?: string
           description: string
+          folder_alt_text?: string | null
+          folder_mime_type?: string | null
+          folder_original_name?: string | null
+          folder_path?: string | null
+          folder_updated_at?: string | null
           id?: string
           instructor_id?: string | null
           price: number
@@ -499,6 +509,11 @@ export type Database = {
           cover_path?: string | null
           created_at?: string
           description?: string
+          folder_alt_text?: string | null
+          folder_mime_type?: string | null
+          folder_original_name?: string | null
+          folder_path?: string | null
+          folder_updated_at?: string | null
           id?: string
           instructor_id?: string | null
           price?: number

@@ -12,3 +12,25 @@
 - Preparação para checkout: `get_current_course_batch` é o ponto de leitura autoritativo para a Fase 03. O futuro endpoint de pedido deverá receber apenas `course_id` e, opcionalmente, `batch_id`; preço e disponibilidade serão recuperados no banco. `orders` deverá registrar `course_batch_id`, `unit_price` e `total`, preservando o valor histórico mesmo após alterações no lote.
 
 Checkout, pedidos, contagem real de vendas e integração de pagamento permanecem fora da Fase 02.
+
+## Mídia
+
+- Upload de capa: permanece no bucket público `course-covers`, limitado a JPEG, PNG e WEBP de até 5 MB, e continua sendo a imagem usada por cards, catálogo, detalhes e Open Graph.
+- Upload de folder: opcional e independente da capa, aceita JPEG, PNG e WEBP de até 10 MB ou PDF de até 15 MB. MIME, extensão, tamanho, arquivo não vazio e assinatura binária são validados no servidor.
+- Tipo e metadados: `folder_path`, `folder_alt_text`, `folder_mime_type`, `folder_original_name` e `folder_updated_at` ficam no curso. O caminho definitivo usa UUID e nunca reutiliza o nome original.
+- Storage: folders ficam exclusivamente no bucket público `course-public-assets`; materiais e vídeos privados não são reutilizados.
+- Policies: `ANON` e `AUTHENTICATED` possuem somente leitura; INSERT, UPDATE e DELETE exigem `ADMIN`. Upload, substituição e remoção também exigem ADMIN nas rotas do servidor.
+- Substituição e remoção: o novo arquivo é enviado e persistido antes da exclusão segura do anterior. Remover o folder limpa apenas seus metadados e objeto, sem afetar capa, curso, materiais ou vídeos.
+- Visualização pública: a página do curso mostra thumbnail e modal responsivo para imagem, ou link externo para PDF. O texto alternativo pode ser personalizado; sem personalização, usa uma descrição contextual do curso.
+- Testes: cobrem opcionalidade, formatos, limites, extensão, assinatura binária, RLS/Storage, autorização administrativa, ordem segura da substituição, remoção independente da capa e contratos de preview responsivo.
+
+## Preview e catálogo interno
+
+- Preview administrativo: `/admin/cursos/[id]/preview` exige sessão e role `ADMIN`, aceita DRAFT ou PUBLISHED sem mudar o status e possui `noindex, nofollow`.
+- Apresentação compartilhada: preview e `/cursos/[slug]` renderizam o mesmo `CoursePresentation`, incluindo capa, folder, instrutor, programa, aulas sem caminhos privados, preço fixo, lote vigente e próximos lotes.
+- Modo preview: exibe barra de contexto, retorno para edição, publicação sujeita às validações existentes e simulações de 1280, 768 e 390 pixels. Não cria pedido, matrícula ou ação comercial.
+- Alterações não salvas: o formulário alerta antes do preview e oferece salvar os dados persistidos antes de navegar.
+- Catálogo interno: `/aluno/catalogo` exige STUDENT autenticado e reutiliza `usePublishedCourses`, busca, filtros, capa e a mesma regra de preço/lote do catálogo público.
+- Matrícula: cards consultam somente enrollment `ACTIVE`; exibem `Acessar curso` quando adquirido e `Ver curso` quando disponível. Checkout e bloqueio transacional de compra permanecem para a Fase 03.
+- Dashboard: `Explore novos cursos` usa os três cursos publicados mais recentes e aponta para o catálogo completo, sem alegar vendas ou escassez.
+- Critérios concluídos: preview ADMIN de DRAFT, isolamento público do DRAFT, layout compartilhado, preço fixo/lotes/folder/mobile, catálogo STUDENT real, RLS de PUBLISHED e consistência de preços.

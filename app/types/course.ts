@@ -35,6 +35,12 @@ export interface Course {
   upcoming_batches?: { id: string, name: string, position: number, price: number }[]
   public_price?: number | null
   cover_url: string | null
+  folder_url?: string | null
+  folder_alt_text?: string | null
+  folder_mime_type?: string | null
+  folder_original_name?: string | null
+  module_count?: number
+  lesson_count?: number
   instructor_name: string | null
   instructor_bio?: string | null
   program?: string | null

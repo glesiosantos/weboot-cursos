@@ -34,7 +34,7 @@ export const courseSchema = z.object({
   price: z.coerce.number().min(0), promotional_price: z.coerce.number().min(0).nullable().optional(),
   pricing_type: pricingTypeSchema.default('FIXED'), show_future_batches: z.boolean().default(false), batches: z.array(courseBatchSchema).default([]),
   status: courseStatusSchema.default('DRAFT'), program: z.string().trim().nullable().optional(), requirements: z.string().trim().nullable().optional(),
-  target_audience: z.string().trim().nullable().optional(), presential: presentialDetailsSchema.nullable().optional(),
+  target_audience: z.string().trim().nullable().optional(), folder_alt_text: z.string().trim().max(240).nullable().optional(), presential: presentialDetailsSchema.nullable().optional(),
 }).superRefine((value, ctx) => {
   if (value.pricing_type === 'FIXED' && value.promotional_price !== null && value.promotional_price !== undefined && value.promotional_price > value.price) { ctx.addIssue({ code: 'custom', path: ['promotional_price'], message: 'O preço promocional não pode superar o preço' }) }
   if (value.pricing_type === 'BATCHES') {
@@ -62,4 +62,23 @@ export const moduleSchema = z.object({ title: z.string().trim().min(1).max(160),
 export const lessonSchema = z.object({ title: z.string().trim().min(1).max(160), description: z.string().trim().max(2000).nullable().optional(), lesson_type: z.enum(['VIDEO', 'TEXT', 'MATERIAL']), content: z.string().trim().max(30000).nullable().optional(), video_path: z.string().trim().max(500).nullable().optional(), duration_minutes: z.coerce.number().int().min(0).nullable().optional(), is_required: z.boolean().default(true), is_preview: z.boolean().default(false) })
 
 export const coverUploadSchema = z.object({ type: z.enum(['image/jpeg', 'image/png', 'image/webp']), size: z.number().int().positive().max(5 * 1024 * 1024) })
+export const folderUploadSchema = z.object({
+  type: z.enum(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  size: z.number().int().positive(),
+  filename: z.string().trim().min(1).max(255),
+}).superRefine((value, ctx) => {
+  const extensions: Record<string, string[]> = { 'image/jpeg': ['jpg', 'jpeg'], 'image/png': ['png'], 'image/webp': ['webp'], 'application/pdf': ['pdf'] }
+  const extension = value.filename.split('.').pop()?.toLowerCase()
+  if (!extension || !extensions[value.type]?.includes(extension)) { ctx.addIssue({ code: 'custom', path: ['filename'], message: 'A extensão não corresponde ao tipo do arquivo' }) }
+  const limit = value.type === 'application/pdf' ? 15 * 1024 * 1024 : 10 * 1024 * 1024
+  if (value.size > limit) { ctx.addIssue({ code: 'too_big', origin: 'number', maximum: limit, inclusive: true, path: ['size'], message: 'Arquivo acima do limite permitido' }) }
+})
+
+export const hasValidFolderSignature = (type: string, data: Uint8Array) => {
+  if (type === 'image/jpeg') { return data.length >= 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff }
+  if (type === 'image/png') { return data.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => data[index] === byte) }
+  if (type === 'image/webp') { return data.length >= 12 && String.fromCharCode(...data.slice(0, 4)) === 'RIFF' && String.fromCharCode(...data.slice(8, 12)) === 'WEBP' }
+  if (type === 'application/pdf') { return data.length >= 5 && String.fromCharCode(...data.slice(0, 5)) === '%PDF-' }
+  return false
+}
 export const materialUploadSchema = z.object({ type: z.enum(['application/pdf', 'application/zip', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']), size: z.number().int().positive().max(50 * 1024 * 1024) })

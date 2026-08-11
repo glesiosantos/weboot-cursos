@@ -1,19 +1,23 @@
 <script setup lang="ts">
-import type { CourseBatchActivationMode, CourseBatchStatus, CoursePricingType, CourseStatus, CourseType } from '~/types/database.types'
+import type { CourseBatchActivationMode, CourseBatchStatus, CoursePricingType, CourseStatus, CourseType, Database } from '~/types/database.types'
 
 interface BatchForm { name: string, position: number, price: number, max_sales: number | null, starts_at: string | null, ends_at: string | null, status: CourseBatchStatus, activation_mode: CourseBatchActivationMode }
-interface FormData { title: string, slug: string, short_description: string, description: string, course_type: CourseType, instructor_id: string | null, workload_hours: number, price: number, promotional_price: number | null, pricing_type: CoursePricingType, show_future_batches: boolean, batches: BatchForm[], status: CourseStatus, program: string | null, requirements: string | null, target_audience: string | null, presential: { location_name: string, city: string, state: string, starts_at: string, ends_at: string, registration_deadline: string | null, max_students: number } | null }
+interface FormData { title: string, slug: string, short_description: string, description: string, course_type: CourseType, instructor_id: string | null, workload_hours: number, price: number, promotional_price: number | null, pricing_type: CoursePricingType, show_future_batches: boolean, batches: BatchForm[], status: CourseStatus, program: string | null, requirements: string | null, target_audience: string | null, cover_path: string | null, folder_path: string | null, folder_alt_text: string | null, folder_mime_type: string | null, folder_original_name: string | null, presential: { location_name: string, city: string, state: string, starts_at: string, ends_at: string, registration_deadline: string | null, max_students: number } | null }
 const props = defineProps<{ courseId?: string, initial?: Partial<FormData> }>()
 const emit = defineEmits<{ saved: [id: string] }>()
+const storageClient = useSupabaseClient<Database>()
 const { data: instructors } = await useAsyncData('admin-instructors', async () => {
   const client = useSupabaseClient()
   const { data, error } = await client.from('instructors').select('id,name,active').order('name')
   if (error) { throw error }
   return data
 })
-const form = reactive<FormData>({ title: '', slug: '', short_description: '', description: '', course_type: 'ONLINE', instructor_id: null, workload_hours: 1, price: 0, promotional_price: null, pricing_type: 'FIXED', show_future_batches: false, batches: [], status: 'DRAFT', program: null, requirements: null, target_audience: null, presential: null, ...props.initial })
+const form = reactive<FormData>({ title: '', slug: '', short_description: '', description: '', course_type: 'ONLINE', instructor_id: null, workload_hours: 1, price: 0, promotional_price: null, pricing_type: 'FIXED', show_future_batches: false, batches: [], status: 'DRAFT', program: null, requirements: null, target_audience: null, cover_path: null, folder_path: null, folder_alt_text: null, folder_mime_type: null, folder_original_name: null, presential: null, ...props.initial })
 const dirty = ref(false); const saving = ref(false); const message = ref(''); const errorMessage = ref(''); const slugTouched = ref(Boolean(props.initial?.slug))
 const cover = ref<File | null>(null)
+const folder = ref<File | null>(null)
+const coverUrl = computed(() => form.cover_path ? storageClient.storage.from('course-covers').getPublicUrl(form.cover_path).data.publicUrl : null)
+const folderUrl = computed(() => form.folder_path ? storageClient.storage.from('course-public-assets').getPublicUrl(form.folder_path).data.publicUrl : null)
 watch(form, () => { dirty.value = true }, { deep: true })
 watch(() => form.title, (value) => { if (!slugTouched.value) { form.slug = normalizeSlug(value) } })
 watch(() => form.course_type, (value) => { if (value === 'PRESENCIAL' && !form.presential) { form.presential = { location_name: '', city: '', state: '', starts_at: '', ends_at: '', registration_deadline: null, max_students: 1 } } if (value === 'ONLINE') { form.presential = null } })
@@ -30,17 +34,56 @@ const submit = async () => {
   try {
     const payload = { ...form, batches: form.pricing_type === 'BATCHES' ? form.batches.map(batch => ({ ...batch, starts_at: asIso(batch.starts_at), ends_at: asIso(batch.ends_at) })) : [], presential: form.presential ? { ...form.presential, starts_at: asIso(form.presential.starts_at), ends_at: asIso(form.presential.ends_at), registration_deadline: asIso(form.presential.registration_deadline) } : null }
     const saved = await $fetch<{ id: string }>(props.courseId ? `/api/admin/courses/${props.courseId}` : '/api/admin/courses', { method: props.courseId ? 'PUT' : 'POST', body: payload })
-    dirty.value = false; message.value = 'Curso salvo com sucesso.'; emit('saved', saved.id)
+    dirty.value = false; message.value = 'Curso salvo com sucesso.'; emit('saved', saved.id); return true
   }
-  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Não foi possível salvar o curso.' }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Não foi possível salvar o curso.'; return false }
   finally { saving.value = false }
+}
+const openPreview = async () => {
+  if (!props.courseId) { return }
+  if (dirty.value && !window.confirm('Existem alterações não salvas. Salvar e visualizar o preview?')) { return }
+  if (dirty.value && !await submit()) { return }
+  await navigateTo(`/admin/cursos/${props.courseId}/preview`)
+}
+const togglePublication = async () => {
+  if (!props.courseId) { return }
+  errorMessage.value = ''
+  try {
+    if (dirty.value && !await submit()) { return }
+    const action = form.status === 'PUBLISHED' ? 'unpublish' : 'publish'
+    await $fetch(`/api/admin/courses/${props.courseId}/${action}`, { method: 'POST' })
+    form.status = action === 'publish' ? 'PUBLISHED' : 'DRAFT'
+    message.value = action === 'publish' ? 'Curso publicado com sucesso.' : 'Curso despublicado com sucesso.'
+  }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Não foi possível alterar a publicação.' }
 }
 const uploadCover = async () => {
   if (!props.courseId || !cover.value) { return }
   const body = new FormData()
   body.append('file', cover.value)
-  try { await $fetch(`/api/admin/courses/${props.courseId}/cover`, { method: 'POST', body }); message.value = 'Capa enviada com sucesso.'; cover.value = null }
+  try { const saved = await $fetch<{ path: string }>(`/api/admin/courses/${props.courseId}/cover`, { method: 'POST', body }); form.cover_path = saved.path; message.value = 'Capa enviada com sucesso.'; cover.value = null }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao enviar a capa.' }
+}
+const uploadFolder = async () => {
+  if (!props.courseId || !folder.value) { return }
+  const body = new FormData()
+  body.append('file', folder.value)
+  if (form.folder_alt_text) { body.append('alt_text', form.folder_alt_text) }
+  try {
+    const saved = await $fetch<{ path: string, mime_type: string, original_name: string, alt_text: string | null }>(`/api/admin/courses/${props.courseId}/folder`, { method: 'POST', body })
+    form.folder_path = saved.path; form.folder_mime_type = saved.mime_type; form.folder_original_name = saved.original_name; form.folder_alt_text = saved.alt_text
+    folder.value = null; message.value = 'Folder enviado com sucesso.'
+  }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao enviar o folder.' }
+}
+const removeFolder = async () => {
+  if (!props.courseId || !form.folder_path || !window.confirm('Remover o folder promocional deste curso?')) { return }
+  try {
+    await $fetch(`/api/admin/courses/${props.courseId}/folder`, { method: 'DELETE' })
+    form.folder_path = null; form.folder_mime_type = null; form.folder_original_name = null; form.folder_alt_text = null
+    message.value = 'Folder removido sem alterar a capa do curso.'
+  }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao remover o folder.' }
 }
 </script>
 
@@ -49,6 +92,40 @@ const uploadCover = async () => {
     class="mt-8 space-y-6"
     @submit.prevent="submit"
   >
+    <div
+      v-if="courseId"
+      class="flex flex-wrap items-center gap-3 rounded-card border border-border bg-white p-4"
+    >
+      <AppButton type="submit">
+        {{ saving ? 'Salvando…' : 'Salvar' }}
+      </AppButton><AppButton
+        type="button"
+        variant="secondary"
+        @click="openPreview"
+      >
+        Preview
+      </AppButton><AppButton
+        v-if="form.status !== 'PUBLISHED'"
+        type="button"
+        variant="secondary"
+        @click="togglePublication"
+      >
+        Publicar
+      </AppButton><template v-else>
+        <AppButton
+          :to="`/cursos/${form.slug}`"
+          variant="secondary"
+        >
+          Visualizar
+        </AppButton><button
+          type="button"
+          class="rounded-xl border border-border px-4 py-3 font-bold"
+          @click="togglePublication"
+        >
+          Despublicar
+        </button>
+      </template>
+    </div>
     <section class="rounded-card border border-border bg-white p-6">
       <h2 class="text-xl font-black">
         Informações básicas
@@ -313,23 +390,94 @@ const uploadCover = async () => {
       class="rounded-card border border-border bg-white p-6"
     >
       <h2 class="text-xl font-black">
-        Capa
-      </h2><p class="mt-2 text-sm text-muted">
-        JPEG, PNG ou WEBP, até 5 MB.
-      </p><div class="mt-4 flex flex-wrap items-end gap-3">
-        <label class="font-bold">Arquivo<input
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          class="field"
-          @change="cover = ($event.target as HTMLInputElement).files?.[0] ?? null"
-        ></label><AppButton
-          type="button"
-          variant="secondary"
-          :disabled="!cover"
-          @click="uploadCover"
-        >
-          Enviar capa
-        </AppButton>
+        Mídia do curso
+      </h2><div class="mt-5 grid gap-5 lg:grid-cols-2">
+        <article class="rounded-xl border border-border p-5">
+          <h3 class="font-black">
+            Capa do curso
+          </h3><p class="mt-1 text-sm text-muted">
+            Usada nos cards, catálogo e compartilhamento. JPEG, PNG ou WEBP, até 5 MB.
+          </p><img
+            v-if="coverUrl"
+            :src="coverUrl"
+            :alt="`Capa do curso ${form.title}`"
+            class="mt-4 aspect-video w-full rounded-xl object-cover"
+          ><div class="mt-4 flex flex-wrap items-end gap-3">
+            <label class="min-w-0 flex-1 font-bold">{{ coverUrl ? 'Alterar capa' : 'Enviar capa' }}<input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="field"
+              @change="cover = ($event.target as HTMLInputElement).files?.[0] ?? null"
+            ></label><AppButton
+              type="button"
+              variant="secondary"
+              :disabled="!cover"
+              @click="uploadCover"
+            >
+              Enviar
+            </AppButton>
+          </div>
+        </article>
+        <article class="rounded-xl border border-border p-5">
+          <h3 class="font-black">
+            Folder promocional
+          </h3><p class="mt-1 text-sm text-muted">
+            Para melhor resultado, utilize uma arte vertical (1080x1350 ou 1080x1920).
+          </p>
+          <img
+            v-if="folderUrl && form.folder_mime_type !== 'application/pdf'"
+            :src="folderUrl"
+            :alt="form.folder_alt_text || `Folder promocional do curso ${form.title}`"
+            class="mx-auto mt-4 max-h-96 w-full rounded-xl object-contain"
+          ><div
+            v-else-if="folderUrl"
+            class="mt-4 rounded-xl bg-surface p-5"
+          >
+            <p class="font-extrabold">
+              Folder em PDF
+            </p><a
+              :href="folderUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-2 inline-block font-bold text-primary underline"
+            >Visualizar</a>
+          </div>
+          <p
+            v-if="form.folder_original_name"
+            class="mt-3 break-all text-sm text-muted"
+          >
+            {{ form.folder_original_name }} · {{ form.folder_mime_type }}
+          </p>
+          <label class="mt-4 block font-bold">Texto alternativo<input
+            v-model="form.folder_alt_text"
+            maxlength="240"
+            placeholder="Folder promocional do curso…"
+            class="field"
+          ></label><div class="mt-4 flex flex-wrap items-end gap-3">
+            <label class="min-w-0 flex-1 font-bold">{{ folderUrl ? 'Substituir folder' : 'Enviar folder' }}<input
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf,.jpg,.jpeg,.png,.webp,.pdf"
+              class="field"
+              @change="folder = ($event.target as HTMLInputElement).files?.[0] ?? null"
+            ></label><AppButton
+              type="button"
+              variant="secondary"
+              :disabled="!folder"
+              @click="uploadFolder"
+            >
+              Enviar
+            </AppButton><button
+              v-if="folderUrl"
+              type="button"
+              class="rounded-lg border border-red-200 px-4 py-3 font-bold text-danger"
+              @click="removeFolder"
+            >
+              Remover
+            </button>
+          </div><p class="mt-3 text-xs text-muted">
+            Imagens até 10 MB; PDF até 15 MB.
+          </p>
+        </article>
       </div>
     </section>
     <p
