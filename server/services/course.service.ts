@@ -57,8 +57,14 @@ export const publicationIssues = async (client: Client, id: string) => {
   if (validCourse.workload_hours <= 0) { issues.push('Carga horária') }
   if (validCourse.price < 0) { issues.push('Preço') }
   if (validCourse.pricing_type === 'BATCHES') {
-    const { data } = await client.from('course_batches').select('id').eq('course_id', id).in('status', ['ACTIVE', 'SCHEDULED']).limit(1)
-    if (!data?.length) { issues.push('Ao menos um lote ativo ou agendado') }
+    const { data, error: batchError } = await client.from('course_batches').select('price,max_sales,ends_at,status').eq('course_id', id)
+    if (batchError) { fail(batchError.message, 500) }
+    const now = Date.now()
+    const enabled = (data ?? []).filter(batch => batch.status !== 'DISABLED')
+    const hasCurrentOrFuture = enabled.some(batch => ['ACTIVE', 'SCHEDULED'].includes(batch.status) && (!batch.ends_at || new Date(batch.ends_at).getTime() > now))
+    if (!hasCurrentOrFuture) { issues.push('Ao menos um lote vigente ou futuro') }
+    if (enabled.some(batch => Number(batch.price) < 0)) { issues.push('Preço válido em todos os lotes') }
+    if (enabled.some(batch => batch.max_sales === null || batch.max_sales <= 0)) { issues.push('Limite de vendas válido em todos os lotes') }
   }
   if (validCourse.course_type === 'PRESENCIAL') {
     const { data } = await client.from('course_presential_details').select('course_id').eq('course_id', id).maybeSingle()

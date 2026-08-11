@@ -457,6 +457,7 @@ export type Database = {
           promotional_price: number | null
           published_at: string | null
           requirements: string | null
+          show_future_batches: boolean
           short_description: string
           slug: string
           status: Database['public']['Enums']['course_status']
@@ -481,6 +482,7 @@ export type Database = {
           promotional_price?: number | null
           published_at?: string | null
           requirements?: string | null
+          show_future_batches?: boolean
           short_description: string
           slug: string
           status?: Database['public']['Enums']['course_status']
@@ -505,6 +507,7 @@ export type Database = {
           promotional_price?: number | null
           published_at?: string | null
           requirements?: string | null
+          show_future_batches?: boolean
           short_description?: string
           slug?: string
           status?: Database['public']['Enums']['course_status']
@@ -954,6 +957,7 @@ export type Database = {
     Functions: {
       bootstrap_admin: { Args: { target_email: string }, Returns: string }
       get_current_course_batch: { Args: { target_course_id: string, reference_at?: string }, Returns: Database['public']['Tables']['course_batches']['Row'][] }
+      get_upcoming_course_batches: { Args: { target_course_id: string, reference_at?: string }, Returns: Database['public']['Tables']['course_batches']['Row'][] }
       get_published_course_lessons: {
         Args: { target_course_id: string }
         Returns: {

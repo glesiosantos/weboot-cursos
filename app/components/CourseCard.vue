@@ -35,6 +35,10 @@ defineProps<{ course: Course }>()
             v-if="course.pricing_type !== 'BATCHES' && course.promotional_price !== null"
             class="block text-xs text-muted line-through"
           >{{ formatPrice(course.price) }}</span><p class="font-extrabold">
+            <span
+              v-if="course.pricing_type === 'BATCHES' && course.public_price !== null"
+              class="block text-xs font-semibold text-muted"
+            >A partir de</span>
             {{ course.public_price === null ? 'Lotes indisponíveis' : formatPrice(course.public_price ?? course.promotional_price ?? course.price) }}
           </p>
         </div><AppButton

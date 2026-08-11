@@ -106,6 +106,35 @@ useHead({ link: [{ rel: 'canonical', href: canonical }] })
         >
           {{ course.current_batch.name }}
         </p>
+        <div
+          v-if="course.current_batch"
+          class="mt-4 rounded-xl bg-surface p-4 text-sm"
+        >
+          <p v-if="course.current_batch.max_sales !== null">
+            <b>{{ course.current_batch.max_sales }} vagas neste lote</b>
+          </p>
+          <p
+            v-if="course.current_batch.ends_at"
+            class="mt-2 text-muted"
+          >
+            Válido até: <b class="text-ink">{{ new Date(course.current_batch.ends_at).toLocaleDateString('pt-BR') }}</b>
+          </p>
+        </div>
+        <section
+          v-if="course.upcoming_batches?.length"
+          class="mt-6 border-t border-border pt-5"
+        >
+          <h2 class="font-black">
+            Próximos lotes
+          </h2>
+          <div
+            v-for="batch in course.upcoming_batches"
+            :key="batch.id"
+            class="mt-3 flex justify-between gap-4 text-sm"
+          >
+            <span>{{ batch.name }}</span><b>{{ formatPrice(batch.price) }}</b>
+          </div>
+        </section>
         <dl class="mt-6 space-y-3 border-y border-border py-5 text-sm">
           <div class="flex justify-between">
             <dt>Instrutor</dt><dd class="font-bold">

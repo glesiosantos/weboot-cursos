@@ -32,6 +32,7 @@ export interface Course {
   promotional_price: number | null
   pricing_type?: CoursePricingType
   current_batch?: { id: string, name: string, position: number, price: number, max_sales: number | null, starts_at: string | null, ends_at: string | null } | null
+  upcoming_batches?: { id: string, name: string, position: number, price: number }[]
   public_price?: number | null
   cover_url: string | null
   instructor_name: string | null

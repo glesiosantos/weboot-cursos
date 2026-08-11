@@ -2,7 +2,7 @@
 import type { CourseBatchActivationMode, CourseBatchStatus, CoursePricingType, CourseStatus, CourseType } from '~/types/database.types'
 
 interface BatchForm { name: string, position: number, price: number, max_sales: number | null, starts_at: string | null, ends_at: string | null, status: CourseBatchStatus, activation_mode: CourseBatchActivationMode }
-interface FormData { title: string, slug: string, short_description: string, description: string, course_type: CourseType, instructor_id: string | null, workload_hours: number, price: number, promotional_price: number | null, pricing_type: CoursePricingType, batches: BatchForm[], status: CourseStatus, program: string | null, requirements: string | null, target_audience: string | null, presential: { location_name: string, city: string, state: string, starts_at: string, ends_at: string, registration_deadline: string | null, max_students: number } | null }
+interface FormData { title: string, slug: string, short_description: string, description: string, course_type: CourseType, instructor_id: string | null, workload_hours: number, price: number, promotional_price: number | null, pricing_type: CoursePricingType, show_future_batches: boolean, batches: BatchForm[], status: CourseStatus, program: string | null, requirements: string | null, target_audience: string | null, presential: { location_name: string, city: string, state: string, starts_at: string, ends_at: string, registration_deadline: string | null, max_students: number } | null }
 const props = defineProps<{ courseId?: string, initial?: Partial<FormData> }>()
 const emit = defineEmits<{ saved: [id: string] }>()
 const { data: instructors } = await useAsyncData('admin-instructors', async () => {
@@ -11,7 +11,7 @@ const { data: instructors } = await useAsyncData('admin-instructors', async () =
   if (error) { throw error }
   return data
 })
-const form = reactive<FormData>({ title: '', slug: '', short_description: '', description: '', course_type: 'ONLINE', instructor_id: null, workload_hours: 1, price: 0, promotional_price: null, pricing_type: 'FIXED', batches: [], status: 'DRAFT', program: null, requirements: null, target_audience: null, presential: null, ...props.initial })
+const form = reactive<FormData>({ title: '', slug: '', short_description: '', description: '', course_type: 'ONLINE', instructor_id: null, workload_hours: 1, price: 0, promotional_price: null, pricing_type: 'FIXED', show_future_batches: false, batches: [], status: 'DRAFT', program: null, requirements: null, target_audience: null, presential: null, ...props.initial })
 const dirty = ref(false); const saving = ref(false); const message = ref(''); const errorMessage = ref(''); const slugTouched = ref(Boolean(props.initial?.slug))
 const cover = ref<File | null>(null)
 watch(form, () => { dirty.value = true }, { deep: true })
@@ -22,7 +22,7 @@ onMounted(() => window.addEventListener('beforeunload', beforeUnload)); onBefore
 onBeforeRouteLeave(() => !dirty.value || window.confirm('Você possui alterações não salvas. Deseja sair?'))
 const asIso = (value: string | null) => value ? new Date(value).toISOString() : null
 const normalizePositions = () => form.batches.forEach((batch, index) => { batch.position = index + 1 })
-const addBatch = () => { form.batches.push({ name: `${form.batches.length + 1}º lote`, position: form.batches.length + 1, price: 0, max_sales: null, starts_at: null, ends_at: null, status: 'DRAFT', activation_mode: 'QUANTITY' }) }
+const addBatch = () => { form.batches.push({ name: `${form.batches.length + 1}º lote`, position: form.batches.length + 1, price: 0, max_sales: 1, starts_at: null, ends_at: null, status: 'DRAFT', activation_mode: 'QUANTITY' }) }
 const removeBatch = (index: number) => { form.batches.splice(index, 1); normalizePositions() }
 const moveBatch = (index: number, offset: number) => { const target = index + offset; if (target < 0 || target >= form.batches.length) { return } const [batch] = form.batches.splice(index, 1); form.batches.splice(target, 0, batch!); normalizePositions() }
 const submit = async () => {
@@ -151,6 +151,10 @@ const uploadCover = async () => {
       <p class="mt-2 text-sm text-muted">
         A quantidade vendida será apurada por pagamentos válidos na próxima fase; não há contador manual.
       </p>
+      <label class="mt-4 flex items-center gap-2 font-bold"><input
+        v-model="form.show_future_batches"
+        type="checkbox"
+      > Mostrar próximos lotes publicamente</label>
       <div class="mt-5 space-y-4">
         <article
           v-for="(batch, index) in form.batches"
@@ -205,10 +209,7 @@ const uploadCover = async () => {
               v-model="batch.activation_mode"
               class="field"
             ><option value="QUANTITY">Quantidade</option><option value="DATE">Data</option><option value="QUANTITY_OR_DATE">Quantidade ou data</option></select></label>
-            <label
-              v-if="batch.activation_mode !== 'DATE'"
-              class="font-bold"
-            >Limite de vendas<input
+            <label class="font-bold">Limite de vendas<input
               v-model.number="batch.max_sales"
               required
               type="number"
