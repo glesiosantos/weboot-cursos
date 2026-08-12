@@ -34,3 +34,37 @@ Checkout, pedidos, contagem real de vendas e integração de pagamento permanece
 - Matrícula: cards consultam somente enrollment `ACTIVE`; exibem `Acessar curso` quando adquirido e `Ver curso` quando disponível. Checkout e bloqueio transacional de compra permanecem para a Fase 03.
 - Dashboard: `Explore novos cursos` usa os três cursos publicados mais recentes e aponta para o catálogo completo, sem alegar vendas ou escassez.
 - Critérios concluídos: preview ADMIN de DRAFT, isolamento público do DRAFT, layout compartilhado, preço fixo/lotes/folder/mobile, catálogo STUDENT real, RLS de PUBLISHED e consistência de preços.
+
+## Review final
+
+Fixtures recorrentes, prefixadas com `E2E`, foram criadas exclusivamente no Supabase DEV. As credenciais ficam em `.env.e2e.local`, ignorado pelo Git e com permissão local restrita; nenhum segredo é versionado. `scripts/e2e/bootstrap.mjs` é idempotente e `scripts/e2e/reset.mjs` restaura somente o curso fixture para DRAFT.
+
+```text
+FASE 02 REVIEW
+
+Banco:                 PASS
+Migrations:            PASS
+Schema:                PASS
+RLS contrato:          PASS
+RLS E2E autenticado:   PASS
+Cursos:                PASS
+Presencial:            PASS
+Online:                PASS
+Instrutores:           PASS
+Lotes:                 PASS
+Capa:                   PASS
+Folder:                 PASS
+Storage:                PASS
+Preview:                PASS
+Catálogo público:       PASS
+Catálogo do aluno:      PASS
+Responsividade:         PASS
+Testes unitários:       PASS
+E2E público:            PASS
+E2E autenticado:        PASS
+Lint:                   PASS
+Typecheck:              PASS
+Build:                  PASS
+```
+
+O E2E autenticado usa sessões reais e separadas de ADMIN e STUDENT. O cliente STUDENT usa a chave pública e comprova negação de escrita em cursos, lotes e instrutores e de upload administrativo; a service role não é usada como identidade STUDENT.

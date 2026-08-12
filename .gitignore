@@ -27,3 +27,6 @@ logs
 .env
 .env.*
 !.env.example
+
+# Credenciais e IDs locais das fixtures E2E do Supabase DEV
+.env.e2e.local
