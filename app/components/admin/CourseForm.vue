@@ -64,6 +64,15 @@ const uploadCover = async () => {
   try { const saved = await $fetch<{ path: string }>(`/api/admin/courses/${props.courseId}/cover`, { method: 'POST', body }); form.cover_path = saved.path; message.value = 'Capa enviada com sucesso.'; cover.value = null }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao enviar a capa.' }
 }
+const removeCover = async () => {
+  if (!props.courseId || !form.cover_path || !window.confirm('Remover a capa deste curso?')) { return }
+  try {
+    await $fetch(`/api/admin/courses/${props.courseId}/cover`, { method: 'DELETE' })
+    form.cover_path = null
+    message.value = 'Capa removida sem alterar o folder promocional.'
+  }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao remover a capa.' }
+}
 const uploadFolder = async () => {
   if (!props.courseId || !folder.value) { return }
   const body = new FormData()
@@ -415,7 +424,14 @@ const removeFolder = async () => {
               @click="uploadCover"
             >
               Enviar
-            </AppButton>
+            </AppButton><button
+              v-if="coverUrl"
+              type="button"
+              class="rounded-lg border border-red-200 px-4 py-3 font-bold text-danger"
+              @click="removeCover"
+            >
+              Remover
+            </button>
           </div>
         </article>
         <article class="rounded-xl border border-border p-5">

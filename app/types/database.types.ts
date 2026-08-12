@@ -20,31 +20,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '14.15'
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       attendance: {
@@ -269,6 +244,59 @@ export type Database = {
         }
         Relationships: []
       }
+      course_batches: {
+        Row: {
+          activation_mode: Database['public']['Enums']['course_batch_activation_mode']
+          course_id: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          max_sales: number | null
+          name: string
+          position: number
+          price: number
+          starts_at: string | null
+          status: Database['public']['Enums']['course_batch_status']
+          updated_at: string
+        }
+        Insert: {
+          activation_mode: Database['public']['Enums']['course_batch_activation_mode']
+          course_id: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          max_sales?: number | null
+          name: string
+          position: number
+          price: number
+          starts_at?: string | null
+          status?: Database['public']['Enums']['course_batch_status']
+          updated_at?: string
+        }
+        Update: {
+          activation_mode?: Database['public']['Enums']['course_batch_activation_mode']
+          course_id?: string
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          max_sales?: number | null
+          name?: string
+          position?: number
+          price?: number
+          starts_at?: string | null
+          status?: Database['public']['Enums']['course_batch_status']
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'course_batches_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       course_materials: {
         Row: {
           course_id: string
@@ -434,12 +462,6 @@ export type Database = {
           },
         ]
       }
-      course_batches: {
-        Row: { id: string, course_id: string, name: string, position: number, price: number, max_sales: number | null, starts_at: string | null, ends_at: string | null, status: Database['public']['Enums']['course_batch_status'], activation_mode: Database['public']['Enums']['course_batch_activation_mode'], created_at: string, updated_at: string }
-        Insert: { id?: string, course_id: string, name: string, position: number, price: number, max_sales?: number | null, starts_at?: string | null, ends_at?: string | null, status?: Database['public']['Enums']['course_batch_status'], activation_mode: Database['public']['Enums']['course_batch_activation_mode'], created_at?: string, updated_at?: string }
-        Update: { id?: string, course_id?: string, name?: string, position?: number, price?: number, max_sales?: number | null, starts_at?: string | null, ends_at?: string | null, status?: Database['public']['Enums']['course_batch_status'], activation_mode?: Database['public']['Enums']['course_batch_activation_mode'], created_at?: string, updated_at?: string }
-        Relationships: [{ foreignKeyName: 'course_batches_course_id_fkey', columns: ['course_id'], isOneToOne: false, referencedRelation: 'courses', referencedColumns: ['id'] }]
-      }
       courses: {
         Row: {
           additional_info: string | null
@@ -462,8 +484,8 @@ export type Database = {
           promotional_price: number | null
           published_at: string | null
           requirements: string | null
-          show_future_batches: boolean
           short_description: string
+          show_future_batches: boolean
           slug: string
           status: Database['public']['Enums']['course_status']
           target_audience: string | null
@@ -492,8 +514,8 @@ export type Database = {
           promotional_price?: number | null
           published_at?: string | null
           requirements?: string | null
-          show_future_batches?: boolean
           short_description: string
+          show_future_batches?: boolean
           slug: string
           status?: Database['public']['Enums']['course_status']
           target_audience?: string | null
@@ -522,8 +544,8 @@ export type Database = {
           promotional_price?: number | null
           published_at?: string | null
           requirements?: string | null
-          show_future_batches?: boolean
           short_description?: string
+          show_future_batches?: boolean
           slug?: string
           status?: Database['public']['Enums']['course_status']
           target_audience?: string | null
@@ -970,9 +992,34 @@ export type Database = {
       }
     }
     Functions: {
+      assert_valid_published_course_batches: {
+        Args: { target_course_id: string }
+        Returns: undefined
+      }
       bootstrap_admin: { Args: { target_email: string }, Returns: string }
-      get_current_course_batch: { Args: { target_course_id: string, reference_at?: string }, Returns: Database['public']['Tables']['course_batches']['Row'][] }
-      get_upcoming_course_batches: { Args: { target_course_id: string, reference_at?: string }, Returns: Database['public']['Tables']['course_batches']['Row'][] }
+      get_current_course_batch: {
+        Args: { reference_at?: string, target_course_id: string }
+        Returns: {
+          activation_mode: Database['public']['Enums']['course_batch_activation_mode']
+          course_id: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          max_sales: number | null
+          name: string
+          position: number
+          price: number
+          starts_at: string | null
+          status: Database['public']['Enums']['course_batch_status']
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'course_batches'
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_published_course_lessons: {
         Args: { target_course_id: string }
         Returns: {
@@ -987,14 +1034,46 @@ export type Database = {
           title: string
         }[]
       }
+      get_upcoming_course_batches: {
+        Args: { reference_at?: string, target_course_id: string }
+        Returns: {
+          activation_mode: Database['public']['Enums']['course_batch_activation_mode']
+          course_id: string
+          created_at: string
+          ends_at: string | null
+          id: string
+          max_sales: number | null
+          name: string
+          position: number
+          price: number
+          starts_at: string | null
+          status: Database['public']['Enums']['course_batch_status']
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: '*'
+          to: 'course_batches'
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       is_admin: { Args: never, Returns: boolean }
-      replace_course_batches: { Args: { target_course_id: string, batches: Json }, Returns: undefined }
+      replace_course_batches: {
+        Args: { batches: Json, target_course_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       attendance_status: 'PRESENT' | 'ABSENT' | 'JUSTIFIED'
       coupon_type: 'PERCENTAGE' | 'FIXED'
       course_batch_activation_mode: 'QUANTITY' | 'DATE' | 'QUANTITY_OR_DATE'
-      course_batch_status: 'DRAFT' | 'SCHEDULED' | 'ACTIVE' | 'SOLD_OUT' | 'EXPIRED' | 'DISABLED'
+      course_batch_status:
+        | 'DRAFT'
+        | 'SCHEDULED'
+        | 'ACTIVE'
+        | 'SOLD_OUT'
+        | 'EXPIRED'
+        | 'DISABLED'
       course_pricing_type: 'FIXED' | 'BATCHES'
       course_status:
         | 'DRAFT'
@@ -1019,456 +1098,6 @@ export type Database = {
         | 'REFUNDED'
         | 'EXPIRED'
       user_role: 'ADMIN' | 'INSTRUCTOR' | 'STUDENT'
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  storage: {
-    Tables: {
-      buckets: {
-        Row: {
-          allowed_mime_types: string[] | null
-          avif_autodetection: boolean | null
-          created_at: string | null
-          file_size_limit: number | null
-          id: string
-          name: string
-          owner: string | null
-          owner_id: string | null
-          public: boolean | null
-          type: Database['storage']['Enums']['buckettype']
-          updated_at: string | null
-        }
-        Insert: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id: string
-          name: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database['storage']['Enums']['buckettype']
-          updated_at?: string | null
-        }
-        Update: {
-          allowed_mime_types?: string[] | null
-          avif_autodetection?: boolean | null
-          created_at?: string | null
-          file_size_limit?: number | null
-          id?: string
-          name?: string
-          owner?: string | null
-          owner_id?: string | null
-          public?: boolean | null
-          type?: Database['storage']['Enums']['buckettype']
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      buckets_analytics: {
-        Row: {
-          created_at: string
-          deleted_at: string | null
-          format: string
-          id: string
-          name: string
-          type: Database['storage']['Enums']['buckettype']
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          deleted_at?: string | null
-          format?: string
-          id?: string
-          name: string
-          type?: Database['storage']['Enums']['buckettype']
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          deleted_at?: string | null
-          format?: string
-          id?: string
-          name?: string
-          type?: Database['storage']['Enums']['buckettype']
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      buckets_vectors: {
-        Row: {
-          created_at: string
-          id: string
-          type: Database['storage']['Enums']['buckettype']
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          id: string
-          type?: Database['storage']['Enums']['buckettype']
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          type?: Database['storage']['Enums']['buckettype']
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      migrations: {
-        Row: {
-          executed_at: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Insert: {
-          executed_at?: string | null
-          hash: string
-          id: number
-          name: string
-        }
-        Update: {
-          executed_at?: string | null
-          hash?: string
-          id?: number
-          name?: string
-        }
-        Relationships: []
-      }
-      objects: {
-        Row: {
-          bucket_id: string | null
-          created_at: string | null
-          id: string
-          last_accessed_at: string | null
-          metadata: Json | null
-          name: string | null
-          owner: string | null
-          owner_id: string | null
-          path_tokens: string[] | null
-          updated_at: string | null
-          user_metadata: Json | null
-          version: string | null
-        }
-        Insert: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Update: {
-          bucket_id?: string | null
-          created_at?: string | null
-          id?: string
-          last_accessed_at?: string | null
-          metadata?: Json | null
-          name?: string | null
-          owner?: string | null
-          owner_id?: string | null
-          path_tokens?: string[] | null
-          updated_at?: string | null
-          user_metadata?: Json | null
-          version?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'objects_bucketId_fkey'
-            columns: ['bucket_id']
-            isOneToOne: false
-            referencedRelation: 'buckets'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      s3_multipart_uploads: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          id: string
-          in_progress_size: number
-          key: string
-          metadata: Json | null
-          owner_id: string | null
-          upload_signature: string
-          user_metadata: Json | null
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          id: string
-          in_progress_size?: number
-          key: string
-          metadata?: Json | null
-          owner_id?: string | null
-          upload_signature: string
-          user_metadata?: Json | null
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          id?: string
-          in_progress_size?: number
-          key?: string
-          metadata?: Json | null
-          owner_id?: string | null
-          upload_signature?: string
-          user_metadata?: Json | null
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 's3_multipart_uploads_bucket_id_fkey'
-            columns: ['bucket_id']
-            isOneToOne: false
-            referencedRelation: 'buckets'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      s3_multipart_uploads_parts: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          etag: string
-          id: string
-          key: string
-          owner_id: string | null
-          part_number: number
-          size: number
-          upload_id: string
-          version: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          etag: string
-          id?: string
-          key: string
-          owner_id?: string | null
-          part_number: number
-          size?: number
-          upload_id: string
-          version: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          etag?: string
-          id?: string
-          key?: string
-          owner_id?: string | null
-          part_number?: number
-          size?: number
-          upload_id?: string
-          version?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 's3_multipart_uploads_parts_bucket_id_fkey'
-            columns: ['bucket_id']
-            isOneToOne: false
-            referencedRelation: 'buckets'
-            referencedColumns: ['id']
-          },
-          {
-            foreignKeyName: 's3_multipart_uploads_parts_upload_id_fkey'
-            columns: ['upload_id']
-            isOneToOne: false
-            referencedRelation: 's3_multipart_uploads'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-      vector_indexes: {
-        Row: {
-          bucket_id: string
-          created_at: string
-          data_type: string
-          dimension: number
-          distance_metric: string
-          id: string
-          metadata_configuration: Json | null
-          name: string
-          updated_at: string
-        }
-        Insert: {
-          bucket_id: string
-          created_at?: string
-          data_type: string
-          dimension: number
-          distance_metric: string
-          id?: string
-          metadata_configuration?: Json | null
-          name: string
-          updated_at?: string
-        }
-        Update: {
-          bucket_id?: string
-          created_at?: string
-          data_type?: string
-          dimension?: number
-          distance_metric?: string
-          id?: string
-          metadata_configuration?: Json | null
-          name?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: 'vector_indexes_bucket_id_fkey'
-            columns: ['bucket_id']
-            isOneToOne: false
-            referencedRelation: 'buckets_vectors'
-            referencedColumns: ['id']
-          },
-        ]
-      }
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      allow_any_operation: {
-        Args: { expected_operations: string[] }
-        Returns: boolean
-      }
-      allow_only_operation: {
-        Args: { expected_operation: string }
-        Returns: boolean
-      }
-      can_insert_object: {
-        Args: { bucketid: string, metadata: Json, name: string, owner: string }
-        Returns: undefined
-      }
-      extension: { Args: { name: string }, Returns: string }
-      filename: { Args: { name: string }, Returns: string }
-      foldername: { Args: { name: string }, Returns: string[] }
-      get_common_prefix: {
-        Args: { p_delimiter: string, p_key: string, p_prefix: string }
-        Returns: string
-      }
-      get_size_by_bucket: {
-        Args: never
-        Returns: {
-          bucket_id: string
-          size: number
-        }[]
-      }
-      list_multipart_uploads_with_delimiter: {
-        Args: {
-          bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_key_token?: string
-          next_upload_token?: string
-          prefix_param: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-        }[]
-      }
-      list_objects_with_delimiter: {
-        Args: {
-          _bucket_id: string
-          delimiter_param: string
-          max_keys?: number
-          next_token?: string
-          prefix_param: string
-          sort_order?: string
-          start_after?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      operation: { Args: never, Returns: string }
-      search: {
-        Args: {
-          bucketname: string
-          levels?: number
-          limits?: number
-          offsets?: number
-          prefix: string
-          search?: string
-          sortcolumn?: string
-          sortorder?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_by_timestamp: {
-        Args: {
-          p_bucket_id: string
-          p_level: number
-          p_limit: number
-          p_prefix: string
-          p_sort_column: string
-          p_sort_column_after: string
-          p_sort_order: string
-          p_start_after: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-      search_v2: {
-        Args: {
-          bucket_name: string
-          levels?: number
-          limits?: number
-          prefix: string
-          sort_column?: string
-          sort_column_after?: string
-          sort_order?: string
-          start_after?: string
-        }
-        Returns: {
-          created_at: string
-          id: string
-          key: string
-          last_accessed_at: string
-          metadata: Json
-          name: string
-          updated_at: string
-        }[]
-      }
-    }
-    Enums: {
-      buckettype: 'STANDARD' | 'ANALYTICS' | 'VECTOR'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1594,15 +1223,19 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       attendance_status: ['PRESENT', 'ABSENT', 'JUSTIFIED'],
       coupon_type: ['PERCENTAGE', 'FIXED'],
       course_batch_activation_mode: ['QUANTITY', 'DATE', 'QUANTITY_OR_DATE'],
-      course_batch_status: ['DRAFT', 'SCHEDULED', 'ACTIVE', 'SOLD_OUT', 'EXPIRED', 'DISABLED'],
+      course_batch_status: [
+        'DRAFT',
+        'SCHEDULED',
+        'ACTIVE',
+        'SOLD_OUT',
+        'EXPIRED',
+        'DISABLED',
+      ],
       course_pricing_type: ['FIXED', 'BATCHES'],
       course_status: [
         'DRAFT',
@@ -1630,11 +1263,6 @@ export const Constants = {
         'EXPIRED',
       ],
       user_role: ['ADMIN', 'INSTRUCTOR', 'STUDENT'],
-    },
-  },
-  storage: {
-    Enums: {
-      buckettype: ['STANDARD', 'ANALYTICS', 'VECTOR'],
     },
   },
 } as const

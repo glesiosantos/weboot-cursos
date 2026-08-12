@@ -3,6 +3,16 @@ definePageMeta({ layout: 'admin', middleware: ['auth', 'admin'] })
 useSeoMeta({ title: 'Cursos | Administração', robots: 'noindex' })
 const { data: courses, pending, refresh, error } = await useFetch('/api/admin/courses')
 const busy = ref<string | null>(null)
+const search = ref('')
+const modality = ref<'TODOS' | 'ONLINE' | 'PRESENCIAL'>('TODOS')
+const filteredCourses = computed(() => {
+  const term = search.value.trim().toLocaleLowerCase('pt-BR')
+  return (courses.value ?? []).filter((course) => {
+    const matchesModality = modality.value === 'TODOS' || course.course_type === modality.value
+    const matchesSearch = !term || course.title.toLocaleLowerCase('pt-BR').includes(term)
+    return matchesModality && matchesSearch
+  })
+})
 const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'duplicate') => {
   busy.value = id
   try { await $fetch(`/api/admin/courses/${id}/${name}`, { method: 'POST' }); await refresh() }
@@ -23,6 +33,35 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
         + Novo curso
       </AppButton>
     </header>
+    <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+      <label
+        class="sr-only"
+        for="admin-course-search"
+      >Buscar cursos</label><input
+        id="admin-course-search"
+        v-model="search"
+        type="search"
+        placeholder="Buscar cursos..."
+        class="field !mt-0 flex-1"
+      ><label
+        class="sr-only"
+        for="admin-course-modality"
+      >Filtrar por modalidade</label><select
+        id="admin-course-modality"
+        v-model="modality"
+        class="field !mt-0 sm:max-w-56"
+      >
+        <option value="TODOS">
+          Todas as modalidades
+        </option>
+        <option value="ONLINE">
+          Online
+        </option>
+        <option value="PRESENCIAL">
+          Presencial
+        </option>
+      </select>
+    </div>
     <p
       v-if="error"
       role="alert"
@@ -41,7 +80,7 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
       />
     </div>
     <div
-      v-else-if="courses?.length"
+      v-else-if="filteredCourses.length"
       class="mt-8"
     >
       <div class="hidden overflow-hidden rounded-card border border-border bg-white md:block">
@@ -56,7 +95,7 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
             </tr>
           </thead><tbody>
             <tr
-              v-for="course in courses"
+              v-for="course in filteredCourses"
               :key="course.id"
               class="border-t border-border"
             >
@@ -105,7 +144,7 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
       </div>
       <div class="grid gap-4 md:hidden">
         <article
-          v-for="course in courses"
+          v-for="course in filteredCourses"
           :key="course.id"
           class="rounded-card border border-border bg-white p-5"
         >
@@ -145,9 +184,9 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
       class="mt-8 rounded-card border border-dashed border-border bg-white p-12 text-center"
     >
       <h2 class="text-xl font-black">
-        Nenhum curso cadastrado
+        {{ courses?.length ? 'Nenhum curso encontrado' : 'Nenhum curso cadastrado' }}
       </h2><p class="mt-2 text-muted">
-        Crie o primeiro curso do catálogo.
+        {{ courses?.length ? 'Ajuste a busca ou os filtros.' : 'Crie o primeiro curso do catálogo.' }}
       </p>
     </div>
   </section>

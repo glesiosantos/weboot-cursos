@@ -5,11 +5,45 @@ const route = useRoute(); const id = String(route.params.id)
 const { data, refresh } = await useFetch(`/api/admin/courses/${id}/content`)
 const moduleTitle = ref(''); const lessonTitles = reactive<Record<string, string>>({}); const errorMessage = ref('')
 const materialTitle = ref(''); const materialFile = ref<File | null>(null)
+const busy = ref<string | null>(null)
 const addModule = async () => { if (!moduleTitle.value.trim()) { return } await $fetch(`/api/admin/courses/${id}/modules`, { method: 'POST', body: { title: moduleTitle.value } }); moduleTitle.value = ''; await refresh() }
 const addLesson = async (moduleId: string) => { const title = lessonTitles[moduleId]?.trim(); if (!title) { return } await $fetch(`/api/admin/modules/${moduleId}/lessons`, { method: 'POST', body: { title, lesson_type: 'TEXT', is_required: true, is_preview: false } }); lessonTitles[moduleId] = ''; await refresh() }
 const move = async (moduleIndex: number, direction: -1 | 1) => {
   const modules = data.value?.modules; if (!modules) { return } const target = moduleIndex + direction; if (target < 0 || target >= modules.length) { return } const ids = modules.map(module => module.id); [ids[moduleIndex], ids[target]] = [ids[target]!, ids[moduleIndex]!]; try { await $fetch(`/api/admin/courses/${id}/reorder`, { method: 'PUT', body: { type: 'module', ids, parent_id: id } }); await refresh() }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao reordenar' }
+}
+const updateModule = async (module: NonNullable<typeof data.value>['modules'][number]) => {
+  busy.value = module.id
+  try { await $fetch(`/api/admin/modules/${module.id}`, { method: 'PUT', body: { title: module.title, description: module.description } }); await refresh() }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao editar módulo' }
+  finally { busy.value = null }
+}
+const removeModule = async (module: NonNullable<typeof data.value>['modules'][number]) => {
+  if (!confirm(`Remover o módulo “${module.title}” e suas aulas? Esta ação não pode ser desfeita.`)) { return }
+  busy.value = module.id
+  try { await $fetch(`/api/admin/modules/${module.id}`, { method: 'DELETE' }); await refresh() }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao remover módulo' }
+  finally { busy.value = null }
+}
+const updateLesson = async (lesson: NonNullable<typeof data.value>['modules'][number]['lessons'][number]) => {
+  busy.value = lesson.id
+  try { await $fetch(`/api/admin/lessons/${lesson.id}`, { method: 'PUT', body: { title: lesson.title, description: lesson.description, lesson_type: lesson.lesson_type, content: lesson.content, video_path: lesson.video_path, duration_minutes: lesson.duration_minutes, is_required: lesson.is_required, is_preview: lesson.is_preview } }); await refresh() }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao editar aula' }
+  finally { busy.value = null }
+}
+const removeLesson = async (lesson: NonNullable<typeof data.value>['modules'][number]['lessons'][number]) => {
+  if (!confirm(`Remover a aula “${lesson.title}”? Esta ação não pode ser desfeita.`)) { return }
+  busy.value = lesson.id
+  try { await $fetch(`/api/admin/lessons/${lesson.id}`, { method: 'DELETE' }); await refresh() }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao remover aula' }
+  finally { busy.value = null }
+}
+const moveLesson = async (module: NonNullable<typeof data.value>['modules'][number], lessonIndex: number, direction: -1 | 1) => {
+  const target = lessonIndex + direction
+  if (target < 0 || target >= module.lessons.length) { return }
+  const ids = module.lessons.map(lesson => lesson.id); [ids[lessonIndex], ids[target]] = [ids[target]!, ids[lessonIndex]!]
+  try { await $fetch(`/api/admin/courses/${id}/reorder`, { method: 'PUT', body: { type: 'lesson', ids, parent_id: module.id } }); await refresh() }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao reordenar aulas' }
 }
 const uploadMaterial = async () => {
   if (!materialTitle.value.trim() || !materialFile.value) { return }
@@ -39,9 +73,14 @@ const uploadMaterial = async () => {
           <div>
             <p class="text-xs font-bold text-muted">
               MÓDULO {{ index + 1 }}
-            </p><h2 class="text-xl font-black">
-              {{ module.title }}
-            </h2>
+            </p><label
+              class="sr-only"
+              :for="`module-name-${module.id}`"
+            >Título do módulo</label><input
+              :id="`module-name-${module.id}`"
+              v-model="module.title"
+              class="field !mt-1 text-xl font-black"
+            >
           </div><div class="flex gap-2">
             <button
               type="button"
@@ -61,15 +100,65 @@ const uploadMaterial = async () => {
               ↓
             </button>
           </div>
+        </div><div class="mt-3 flex flex-wrap gap-3">
+          <button
+            class="text-sm font-bold text-primary-700"
+            :disabled="busy === module.id"
+            @click="updateModule(module)"
+          >
+            Salvar módulo
+          </button><button
+            class="text-sm font-bold text-danger"
+            :disabled="busy === module.id"
+            @click="removeModule(module)"
+          >
+            Remover módulo
+          </button>
         </div><ol class="mt-5 space-y-2">
           <li
             v-for="(lesson, lessonIndex) in module.lessons"
             :key="lesson.id"
             class="rounded-xl bg-canvas px-4 py-3 text-sm"
           >
-            <b>Aula {{ lessonIndex + 1 }}</b> — {{ lesson.title }} <AppBadge v-if="lesson.is_preview">
-              Preview
-            </AppBadge>
+            <div class="flex flex-wrap items-center gap-2">
+              <b>Aula {{ lessonIndex + 1 }}</b><label
+                class="sr-only"
+                :for="`lesson-name-${lesson.id}`"
+              >Título da aula</label><input
+                :id="`lesson-name-${lesson.id}`"
+                v-model="lesson.title"
+                class="field !mt-0 min-w-48 flex-1"
+              ><AppBadge v-if="lesson.is_preview">
+                Preview
+              </AppBadge>
+            </div>
+            <div class="mt-2 flex flex-wrap gap-3">
+              <button
+                :disabled="lessonIndex === 0"
+                :aria-label="`Mover ${lesson.title} para cima`"
+                @click="moveLesson(module, lessonIndex, -1)"
+              >
+                ↑
+              </button><button
+                :disabled="lessonIndex === module.lessons.length - 1"
+                :aria-label="`Mover ${lesson.title} para baixo`"
+                @click="moveLesson(module, lessonIndex, 1)"
+              >
+                ↓
+              </button><button
+                class="font-bold text-primary-700"
+                :disabled="busy === lesson.id"
+                @click="updateLesson(lesson)"
+              >
+                Salvar aula
+              </button><button
+                class="font-bold text-danger"
+                :disabled="busy === lesson.id"
+                @click="removeLesson(lesson)"
+              >
+                Remover aula
+              </button>
+            </div>
           </li>
         </ol><form
           class="mt-4 flex gap-2"
