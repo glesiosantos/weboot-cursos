@@ -70,6 +70,17 @@ describe('password recovery', () => {
     expect(window.location.hash).toBe('')
   })
 
+  it('rejects a direct recovery-page visit without waiting for Supabase', async () => {
+    onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe } } })
+    window.history.replaceState({}, '', '/redefinir-senha')
+
+    const wrapper = await mountSuspended(RecoveryPasswordPage)
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Este link de recuperação expirou ou não é mais válido.')
+    expect(getSession).not.toHaveBeenCalled()
+  })
+
   it('does not log authentication fragments', async () => {
     const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe } } })
