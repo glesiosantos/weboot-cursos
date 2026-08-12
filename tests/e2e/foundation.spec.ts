@@ -42,6 +42,13 @@ test('account security redirects anonymous visitors to login', async ({ page }) 
   await expect(page).toHaveURL(/\/login$/)
 })
 
+test('commercial and check-in routes reject anonymous access', async ({ page }) => {
+  for (const path of ['/checkout/retorno?pedido=a174f612-35c6-45c0-bf07-a0047bb6fdd3', '/admin/cursos/a174f612-35c6-45c0-bf07-a0047bb6fdd3/checkin']) {
+    await page.goto(path)
+    await expect(page).toHaveURL(/\/login/)
+  }
+})
+
 for (const width of [375, 390, 768, 1024, 1280, 1440]) {
   test(`home remains responsive at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })

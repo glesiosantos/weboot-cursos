@@ -8,6 +8,7 @@ const loading = ref(false)
 const { signIn } = useAuth()
 const client = useSupabaseClient<Database>()
 const authFeedback = useState<string | undefined>('auth-feedback')
+const route = useRoute()
 
 onBeforeUnmount(() => {
   authFeedback.value = undefined
@@ -36,7 +37,10 @@ const submit = async () => {
       throw profileError ?? new Error('PROFILE_NOT_FOUND')
     }
 
-    await navigateTo(getAuthenticatedHome(profile.role))
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('//')
+      ? route.query.redirect
+      : getAuthenticatedHome(profile.role)
+    await navigateTo(redirect)
   }
   catch {
     errorMessage.value = 'Não foi possível entrar. Confira suas credenciais.'

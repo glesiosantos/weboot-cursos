@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const client = useSupabaseClient()
-const status = ref<'processing' | 'ready' | 'invalid'>('processing')
+const status = ref<'processing' | 'ready' | 'invalid'>('invalid')
 let recoveryEventReceived = false
 
 const clearAuthFragment = () => {
@@ -19,9 +19,9 @@ const { data: authListener } = client.auth.onAuthStateChange((event, session) =>
 onMounted(async () => {
   const hasRecoveryPayload = Boolean(window.location.hash || new URLSearchParams(window.location.search).get('code'))
   if (!hasRecoveryPayload) {
-    status.value = 'invalid'
     return
   }
+  status.value = 'processing'
   const { data, error } = await client.auth.getSession()
 
   // PASSWORD_RECOVERY is queued by the SDK after it has consumed the URL.

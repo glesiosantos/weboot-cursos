@@ -1,0 +1,47 @@
+import type { HostedCheckout, HostedCheckoutInput, PaymentProvider } from './payment-provider'
+
+type AsaasCheckoutResponse = { id?: string, link?: string, status?: string, errors?: { description?: string }[] }
+type CheckoutFetch = (url: string, options: Record<string, unknown>) => Promise<AsaasCheckoutResponse>
+const defaultCheckoutFetch: CheckoutFetch = async (url, options) => {
+  const response = await fetch(url, {
+    method: String(options.method),
+    headers: options.headers as HeadersInit,
+    body: JSON.stringify(options.body),
+  })
+  const payload = await response.json() as AsaasCheckoutResponse
+  if (!response.ok) {
+    throw createError({ statusCode: 502, statusMessage: payload.errors?.[0]?.description ?? 'Falha ao criar Checkout no Asaas' })
+  }
+  return payload
+}
+
+export class AsaasHostedCheckoutProvider implements PaymentProvider {
+  constructor(private readonly apiUrl: string, private readonly apiKey: string, private readonly request: CheckoutFetch = defaultCheckoutFetch) {}
+
+  async createHostedCheckout(input: HostedCheckoutInput): Promise<HostedCheckout> {
+    if (!this.apiUrl.includes('api-sandbox.asaas.com')) {
+      throw createError({ statusCode: 503, statusMessage: 'Checkout liberado exclusivamente no Asaas Sandbox nesta fase' })
+    }
+    const response = await this.request(`${this.apiUrl.replace(/\/$/, '')}/checkouts`, {
+      method: 'POST',
+      headers: { 'accept': 'application/json', 'access_token': this.apiKey, 'content-type': 'application/json' },
+      body: {
+        billingTypes: ['PIX', 'CREDIT_CARD'],
+        chargeTypes: ['DETACHED'],
+        minutesToExpire: input.expiresInMinutes,
+        externalReference: input.orderId,
+        callback: {
+          successUrl: `${input.callbackUrl}?pedido=${encodeURIComponent(input.orderId)}`,
+          cancelUrl: `${input.callbackUrl}?pedido=${encodeURIComponent(input.orderId)}`,
+          expiredUrl: `${input.callbackUrl}?pedido=${encodeURIComponent(input.orderId)}`,
+        },
+        items: [{ externalReference: input.courseId, name: input.courseTitle, quantity: 1, value: input.amount }],
+        customerData: input.customer,
+      },
+    })
+    if (!response.id || !response.link) {
+      throw createError({ statusCode: 502, statusMessage: response.errors?.[0]?.description ?? 'Resposta inválida do Asaas' })
+    }
+    return { id: response.id, url: response.link, status: response.status ?? 'ACTIVE' }
+  }
+}

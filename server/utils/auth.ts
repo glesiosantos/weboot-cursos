@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { serverSupabaseClient, serverSupabaseUser } from '#supabase/server'
+import { serverSupabaseClient, serverSupabaseServiceRole, serverSupabaseUser } from '#supabase/server'
 import type { Database } from '~/types/database.types'
 
 export type AppRole = 'ADMIN' | 'INSTRUCTOR' | 'STUDENT'
@@ -25,4 +25,14 @@ export const requireRole = async (event: H3Event, allowedRoles: AppRole[]) => {
     throw createError({ statusCode: 403, statusMessage: 'Acesso negado' })
   }
   return { user, role: profile.role }
+}
+
+export const requireCourseManager = async (event: H3Event, courseId: string) => {
+  const auth = await requireRole(event, ['ADMIN', 'INSTRUCTOR'])
+  if (auth.role === 'ADMIN') { return auth }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const admin = serverSupabaseServiceRole(event) as any
+  const { data } = await admin.from('courses').select('id,instructors!inner(profile_id)').eq('id', courseId).eq('instructors.profile_id', auth.user.sub).maybeSingle()
+  if (!data) { throw createError({ statusCode: 403, statusMessage: 'Instrutor não autorizado para este evento' }) }
+  return auth
 }
