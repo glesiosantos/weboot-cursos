@@ -20,11 +20,37 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: '14.15'
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       attendance: {
         Row: {
           attendance_date: string
+          checked_in_at: string | null
           created_at: string
           enrollment_id: string
           id: string
@@ -35,6 +61,7 @@ export type Database = {
         }
         Insert: {
           attendance_date: string
+          checked_in_at?: string | null
           created_at?: string
           enrollment_id: string
           id?: string
@@ -45,6 +72,7 @@ export type Database = {
         }
         Update: {
           attendance_date?: string
+          checked_in_at?: string | null
           created_at?: string
           enrollment_id?: string
           id?: string
@@ -566,6 +594,7 @@ export type Database = {
       enrollments: {
         Row: {
           completed_at: string | null
+          course_batch_id: string | null
           course_id: string
           created_at: string
           enrolled_at: string
@@ -578,6 +607,7 @@ export type Database = {
         }
         Insert: {
           completed_at?: string | null
+          course_batch_id?: string | null
           course_id: string
           created_at?: string
           enrolled_at?: string
@@ -590,6 +620,7 @@ export type Database = {
         }
         Update: {
           completed_at?: string | null
+          course_batch_id?: string | null
           course_id?: string
           created_at?: string
           enrolled_at?: string
@@ -601,6 +632,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: 'enrollments_course_batch_id_fkey'
+            columns: ['course_batch_id']
+            isOneToOne: false
+            referencedRelation: 'course_batches'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'enrollments_course_id_fkey'
             columns: ['course_id']
@@ -617,6 +655,73 @@ export type Database = {
           },
           {
             foreignKeyName: 'enrollments_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      event_credentials: {
+        Row: {
+          access_token_hash: string | null
+          code: string
+          course_id: string
+          created_at: string
+          enrollment_id: string
+          id: string
+          issued_at: string
+          qr_token_hash: string
+          status: Database['public']['Enums']['event_credential_status']
+          updated_at: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token_hash?: string | null
+          code: string
+          course_id: string
+          created_at?: string
+          enrollment_id: string
+          id?: string
+          issued_at?: string
+          qr_token_hash: string
+          status?: Database['public']['Enums']['event_credential_status']
+          updated_at?: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token_hash?: string | null
+          code?: string
+          course_id?: string
+          created_at?: string
+          enrollment_id?: string
+          id?: string
+          issued_at?: string
+          qr_token_hash?: string
+          status?: Database['public']['Enums']['event_credential_status']
+          updated_at?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'event_credentials_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_credentials_enrollment_id_fkey'
+            columns: ['enrollment_id']
+            isOneToOne: true
+            referencedRelation: 'enrollments'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'event_credentials_user_id_fkey'
             columns: ['user_id']
             isOneToOne: false
             referencedRelation: 'profiles'
@@ -786,54 +891,126 @@ export type Database = {
           },
         ]
       }
+      notification_logs: {
+        Row: {
+          channel: string
+          created_at: string
+          destination_masked: string
+          external_id: string | null
+          id: string
+          registration_id: string | null
+          sent_at: string | null
+          status: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          destination_masked: string
+          external_id?: string | null
+          id?: string
+          registration_id?: string | null
+          sent_at?: string | null
+          status: string
+          type: string
+          user_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          destination_masked?: string
+          external_id?: string | null
+          id?: string
+          registration_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'notification_logs_registration_id_fkey'
+            columns: ['registration_id']
+            isOneToOne: false
+            referencedRelation: 'registration_contacts'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'notification_logs_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       orders: {
         Row: {
           asaas_checkout_id: string | null
+          asaas_checkout_url: string | null
           asaas_payment_id: string | null
           coupon_id: string | null
+          course_batch_id: string | null
           course_id: string
           created_at: string
           currency: string
           discount: number
+          expires_at: string | null
+          external_reference: string | null
           id: string
           paid_at: string | null
+          registration_id: string | null
           status: Database['public']['Enums']['order_status']
           subtotal: number
           total: number
+          unit_price: number
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           asaas_checkout_id?: string | null
+          asaas_checkout_url?: string | null
           asaas_payment_id?: string | null
           coupon_id?: string | null
+          course_batch_id?: string | null
           course_id: string
           created_at?: string
           currency?: string
           discount?: number
+          expires_at?: string | null
+          external_reference?: string | null
           id?: string
           paid_at?: string | null
+          registration_id?: string | null
           status?: Database['public']['Enums']['order_status']
           subtotal: number
           total: number
+          unit_price: number
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           asaas_checkout_id?: string | null
+          asaas_checkout_url?: string | null
           asaas_payment_id?: string | null
           coupon_id?: string | null
+          course_batch_id?: string | null
           course_id?: string
           created_at?: string
           currency?: string
           discount?: number
+          expires_at?: string | null
+          external_reference?: string | null
           id?: string
           paid_at?: string | null
+          registration_id?: string | null
           status?: Database['public']['Enums']['order_status']
           subtotal?: number
           total?: number
+          unit_price?: number
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -844,10 +1021,24 @@ export type Database = {
             referencedColumns: ['id']
           },
           {
+            foreignKeyName: 'orders_course_batch_id_fkey'
+            columns: ['course_batch_id']
+            isOneToOne: false
+            referencedRelation: 'course_batches'
+            referencedColumns: ['id']
+          },
+          {
             foreignKeyName: 'orders_course_id_fkey'
             columns: ['course_id']
             isOneToOne: false
             referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'orders_registration_id_fkey'
+            columns: ['registration_id']
+            isOneToOne: true
+            referencedRelation: 'registration_contacts'
             referencedColumns: ['id']
           },
           {
@@ -933,6 +1124,127 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_contacts: {
+        Row: {
+          cpf_encrypted: string
+          cpf_hash: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          marketing_accepted: boolean
+          public_reference_hash: string
+          terms_accepted_at: string
+          terms_version: string
+          updated_at: string
+          user_id: string | null
+          whatsapp: string
+        }
+        Insert: {
+          cpf_encrypted: string
+          cpf_hash: string
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          marketing_accepted?: boolean
+          public_reference_hash: string
+          terms_accepted_at: string
+          terms_version: string
+          updated_at?: string
+          user_id?: string | null
+          whatsapp: string
+        }
+        Update: {
+          cpf_encrypted?: string
+          cpf_hash?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          marketing_accepted?: boolean
+          public_reference_hash?: string
+          terms_accepted_at?: string
+          terms_version?: string
+          updated_at?: string
+          user_id?: string | null
+          whatsapp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'registration_contacts_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      seat_reservations: {
+        Row: {
+          course_batch_id: string | null
+          course_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          order_id: string
+          status: Database['public']['Enums']['seat_reservation_status']
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          course_batch_id?: string | null
+          course_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          order_id: string
+          status?: Database['public']['Enums']['seat_reservation_status']
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          course_batch_id?: string | null
+          course_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id?: string
+          status?: Database['public']['Enums']['seat_reservation_status']
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'seat_reservations_course_batch_id_fkey'
+            columns: ['course_batch_id']
+            isOneToOne: false
+            referencedRelation: 'course_batches'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'seat_reservations_course_id_fkey'
+            columns: ['course_id']
+            isOneToOne: false
+            referencedRelation: 'courses'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'seat_reservations_order_id_fkey'
+            columns: ['order_id']
+            isOneToOne: true
+            referencedRelation: 'orders'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'seat_reservations_user_id_fkey'
+            columns: ['user_id']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       webhook_events: {
         Row: {
           event_type: string
@@ -996,7 +1308,42 @@ export type Database = {
         Args: { target_course_id: string }
         Returns: undefined
       }
+      associate_guest_order: {
+        Args: { target_order_id: string, target_user_id: string }
+        Returns: undefined
+      }
       bootstrap_admin: { Args: { target_email: string }, Returns: string }
+      cancel_commercial_order: {
+        Args: {
+          new_status: Database['public']['Enums']['order_status']
+          target_order_id: string
+        }
+        Returns: undefined
+      }
+      check_in_event: {
+        Args: {
+          actor_user_id: string
+          manual_checkin?: boolean
+          target_course_id: string
+          target_token_hash: string
+        }
+        Returns: {
+          checked_in_at: string
+          course_title: string
+          result: string
+          student_name: string
+        }[]
+      }
+      confirm_commercial_payment: {
+        Args: {
+          credential_code: string
+          credential_token_hash: string
+          external_payment_id: string
+          payment_status: string
+          target_order_id: string
+        }
+        Returns: string
+      }
       get_current_course_batch: {
         Args: { reference_at?: string, target_course_id: string }
         Returns: {
@@ -1034,6 +1381,17 @@ export type Database = {
           title: string
         }[]
       }
+      get_registration_status: {
+        Args: { reference_hash: string }
+        Returns: {
+          course_title: string
+          course_type: Database['public']['Enums']['course_type']
+          location_name: string
+          participant_name: string
+          starts_at: string
+          status: Database['public']['Enums']['order_status']
+        }[]
+      }
       get_upcoming_course_batches: {
         Args: { reference_at?: string, target_course_id: string }
         Returns: {
@@ -1058,6 +1416,46 @@ export type Database = {
         }
       }
       is_admin: { Args: never, Returns: boolean }
+      prepare_checkout_order: {
+        Args: {
+          reservation_minutes?: number
+          target_course_id: string
+          target_user_id: string
+        }
+        Returns: {
+          course_batch_id: string
+          course_title: string
+          course_type: Database['public']['Enums']['course_type']
+          expires_at: string
+          order_id: string
+          reused: boolean
+          unit_price: number
+        }[]
+      }
+      prepare_guest_checkout_order: {
+        Args: {
+          accepted_marketing: boolean
+          accepted_terms_version: string
+          participant_cpf_encrypted: string
+          participant_cpf_hash: string
+          participant_email: string
+          participant_name: string
+          participant_whatsapp: string
+          reference_hash: string
+          reservation_minutes?: number
+          target_course_id: string
+        }
+        Returns: {
+          course_batch_id: string
+          course_title: string
+          course_type: Database['public']['Enums']['course_type']
+          expires_at: string
+          order_id: string
+          registration_id: string
+          reused: boolean
+          unit_price: number
+        }[]
+      }
       replace_course_batches: {
         Args: { batches: Json, target_course_id: string }
         Returns: undefined
@@ -1089,6 +1487,7 @@ export type Database = {
         | 'COMPLETED'
         | 'CANCELED'
         | 'EXPIRED'
+      event_credential_status: 'ACTIVE' | 'USED' | 'CANCELED'
       lesson_type: 'VIDEO' | 'TEXT' | 'MATERIAL'
       order_status:
         | 'PENDING'
@@ -1097,7 +1496,458 @@ export type Database = {
         | 'CANCELED'
         | 'REFUNDED'
         | 'EXPIRED'
+      seat_reservation_status: 'RESERVED' | 'CONFIRMED' | 'EXPIRED' | 'CANCELED'
       user_role: 'ADMIN' | 'INSTRUCTOR' | 'STUDENT'
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  storage: {
+    Tables: {
+      buckets: {
+        Row: {
+          allowed_mime_types: string[] | null
+          avif_autodetection: boolean | null
+          created_at: string | null
+          file_size_limit: number | null
+          id: string
+          name: string
+          owner: string | null
+          owner_id: string | null
+          public: boolean | null
+          type: Database['storage']['Enums']['buckettype']
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id: string
+          name: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database['storage']['Enums']['buckettype']
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_mime_types?: string[] | null
+          avif_autodetection?: boolean | null
+          created_at?: string | null
+          file_size_limit?: number | null
+          id?: string
+          name?: string
+          owner?: string | null
+          owner_id?: string | null
+          public?: boolean | null
+          type?: Database['storage']['Enums']['buckettype']
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      buckets_analytics: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          format: string
+          id: string
+          name: string
+          type: Database['storage']['Enums']['buckettype']
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name: string
+          type?: Database['storage']['Enums']['buckettype']
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          format?: string
+          id?: string
+          name?: string
+          type?: Database['storage']['Enums']['buckettype']
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      buckets_vectors: {
+        Row: {
+          created_at: string
+          id: string
+          type: Database['storage']['Enums']['buckettype']
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          type?: Database['storage']['Enums']['buckettype']
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          type?: Database['storage']['Enums']['buckettype']
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      migrations: {
+        Row: {
+          executed_at: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Insert: {
+          executed_at?: string | null
+          hash: string
+          id: number
+          name: string
+        }
+        Update: {
+          executed_at?: string | null
+          hash?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      objects: {
+        Row: {
+          bucket_id: string | null
+          created_at: string | null
+          id: string
+          last_accessed_at: string | null
+          metadata: Json | null
+          name: string | null
+          owner: string | null
+          owner_id: string | null
+          path_tokens: string[] | null
+          updated_at: string | null
+          user_metadata: Json | null
+          version: string | null
+        }
+        Insert: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Update: {
+          bucket_id?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          owner?: string | null
+          owner_id?: string | null
+          path_tokens?: string[] | null
+          updated_at?: string | null
+          user_metadata?: Json | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'objects_bucketId_fkey'
+            columns: ['bucket_id']
+            isOneToOne: false
+            referencedRelation: 'buckets'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      s3_multipart_uploads: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          id: string
+          in_progress_size: number
+          key: string
+          metadata: Json | null
+          owner_id: string | null
+          upload_signature: string
+          user_metadata: Json | null
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          id: string
+          in_progress_size?: number
+          key: string
+          metadata?: Json | null
+          owner_id?: string | null
+          upload_signature: string
+          user_metadata?: Json | null
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          id?: string
+          in_progress_size?: number
+          key?: string
+          metadata?: Json | null
+          owner_id?: string | null
+          upload_signature?: string
+          user_metadata?: Json | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 's3_multipart_uploads_bucket_id_fkey'
+            columns: ['bucket_id']
+            isOneToOne: false
+            referencedRelation: 'buckets'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      s3_multipart_uploads_parts: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          etag: string
+          id: string
+          key: string
+          owner_id: string | null
+          part_number: number
+          size: number
+          upload_id: string
+          version: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          etag: string
+          id?: string
+          key: string
+          owner_id?: string | null
+          part_number: number
+          size?: number
+          upload_id: string
+          version: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          etag?: string
+          id?: string
+          key?: string
+          owner_id?: string | null
+          part_number?: number
+          size?: number
+          upload_id?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 's3_multipart_uploads_parts_bucket_id_fkey'
+            columns: ['bucket_id']
+            isOneToOne: false
+            referencedRelation: 'buckets'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 's3_multipart_uploads_parts_upload_id_fkey'
+            columns: ['upload_id']
+            isOneToOne: false
+            referencedRelation: 's3_multipart_uploads'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      vector_indexes: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id: string
+          metadata_configuration: Json | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id: string
+          created_at?: string
+          data_type: string
+          dimension: number
+          distance_metric: string
+          id?: string
+          metadata_configuration?: Json | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          data_type?: string
+          dimension?: number
+          distance_metric?: string
+          id?: string
+          metadata_configuration?: Json | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'vector_indexes_bucket_id_fkey'
+            columns: ['bucket_id']
+            isOneToOne: false
+            referencedRelation: 'buckets_vectors'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      allow_any_operation: {
+        Args: { expected_operations: string[] }
+        Returns: boolean
+      }
+      allow_only_operation: {
+        Args: { expected_operation: string }
+        Returns: boolean
+      }
+      can_insert_object: {
+        Args: { bucketid: string, metadata: Json, name: string, owner: string }
+        Returns: undefined
+      }
+      extension: { Args: { name: string }, Returns: string }
+      filename: { Args: { name: string }, Returns: string }
+      foldername: { Args: { name: string }, Returns: string[] }
+      get_common_prefix: {
+        Args: { p_delimiter: string, p_key: string, p_prefix: string }
+        Returns: string
+      }
+      get_size_by_bucket: {
+        Args: never
+        Returns: {
+          bucket_id: string
+          size: number
+        }[]
+      }
+      list_multipart_uploads_with_delimiter: {
+        Args: {
+          bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_key_token?: string
+          next_upload_token?: string
+          prefix_param: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+        }[]
+      }
+      list_objects_with_delimiter: {
+        Args: {
+          _bucket_id: string
+          delimiter_param: string
+          max_keys?: number
+          next_token?: string
+          prefix_param: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      operation: { Args: never, Returns: string }
+      search: {
+        Args: {
+          bucketname: string
+          levels?: number
+          limits?: number
+          offsets?: number
+          prefix: string
+          search?: string
+          sortcolumn?: string
+          sortorder?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_by_timestamp: {
+        Args: {
+          p_bucket_id: string
+          p_level: number
+          p_limit: number
+          p_prefix: string
+          p_sort_column: string
+          p_sort_column_after: string
+          p_sort_order: string
+          p_start_after: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+      search_v2: {
+        Args: {
+          bucket_name: string
+          levels?: number
+          limits?: number
+          prefix: string
+          sort_column?: string
+          sort_column_after?: string
+          sort_order?: string
+          start_after?: string
+        }
+        Returns: {
+          created_at: string
+          id: string
+          key: string
+          last_accessed_at: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }[]
+      }
+    }
+    Enums: {
+      buckettype: 'STANDARD' | 'ANALYTICS' | 'VECTOR'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1223,6 +2073,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       attendance_status: ['PRESENT', 'ABSENT', 'JUSTIFIED'],
@@ -1253,6 +2106,7 @@ export const Constants = {
         'CANCELED',
         'EXPIRED',
       ],
+      event_credential_status: ['ACTIVE', 'USED', 'CANCELED'],
       lesson_type: ['VIDEO', 'TEXT', 'MATERIAL'],
       order_status: [
         'PENDING',
@@ -1262,7 +2116,13 @@ export const Constants = {
         'REFUNDED',
         'EXPIRED',
       ],
+      seat_reservation_status: ['RESERVED', 'CONFIRMED', 'EXPIRED', 'CANCELED'],
       user_role: ['ADMIN', 'INSTRUCTOR', 'STUDENT'],
+    },
+  },
+  storage: {
+    Enums: {
+      buckettype: ['STANDARD', 'ANALYTICS', 'VECTOR'],
     },
   },
 } as const

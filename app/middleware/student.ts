@@ -1,8 +1,8 @@
 import type { Database } from '~/types/database.types'
 
 export default defineNuxtRouteMiddleware(async () => {
-  const user = useSupabaseUser()
-  if (!user.value) {
+  const userId = await resolveAuthenticatedUserId()
+  if (!userId) {
     return navigateTo('/login')
   }
 
@@ -10,7 +10,7 @@ export default defineNuxtRouteMiddleware(async () => {
   const { data: profile, error } = await client
     .from('profiles')
     .select('role')
-    .eq('id', user.value.sub)
+    .eq('id', userId)
     .single()
 
   if (error || !profile) {

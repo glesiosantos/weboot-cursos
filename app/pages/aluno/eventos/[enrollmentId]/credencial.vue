@@ -30,6 +30,12 @@ onMounted(async () => { if (code.value) { qr.value = await QRCode.toDataURL(`${c
       class="mx-auto mt-6 size-72"
     ><p class="mt-4 text-sm text-muted">
       Código alternativo
-    </p><code class="mt-2 block break-all font-bold">{{ code }}</code>
+    </p><code class="mt-2 block break-all font-bold">{{ code }}</code><AppButton
+      :to="`/api/student/events/${route.params.enrollmentId}/credential.pdf`"
+      variant="secondary"
+      class="mt-6"
+    >
+      BAIXAR COMPROVANTE
+    </AppButton>
   </section>
 </template>

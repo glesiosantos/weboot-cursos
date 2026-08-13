@@ -22,6 +22,7 @@ export class AsaasHostedCheckoutProvider implements PaymentProvider {
     if (!this.apiUrl.includes('api-sandbox.asaas.com')) {
       throw createError({ statusCode: 503, statusMessage: 'Checkout liberado exclusivamente no Asaas Sandbox nesta fase' })
     }
+    const checkoutPhone = (input.customer.mobilePhone ?? input.customer.phone ?? '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')
     const response = await this.request(`${this.apiUrl.replace(/\/$/, '')}/checkouts`, {
       method: 'POST',
       headers: { 'accept': 'application/json', 'access_token': this.apiKey, 'content-type': 'application/json' },
@@ -31,12 +32,17 @@ export class AsaasHostedCheckoutProvider implements PaymentProvider {
         minutesToExpire: input.expiresInMinutes,
         externalReference: input.orderId,
         callback: {
-          successUrl: `${input.callbackUrl}?pedido=${encodeURIComponent(input.orderId)}`,
-          cancelUrl: `${input.callbackUrl}?pedido=${encodeURIComponent(input.orderId)}`,
-          expiredUrl: `${input.callbackUrl}?pedido=${encodeURIComponent(input.orderId)}`,
+          successUrl: input.callbackUrl,
+          cancelUrl: input.callbackUrl,
+          expiredUrl: input.callbackUrl,
         },
         items: [{ externalReference: input.courseId, name: input.courseTitle, quantity: 1, value: input.amount }],
-        customerData: input.customer,
+        customerData: {
+          name: input.customer.name,
+          email: input.customer.email,
+          ...(input.customer.cpfCnpj ? { cpfCnpj: input.customer.cpfCnpj } : {}),
+          ...(checkoutPhone ? { phone: checkoutPhone } : {}),
+        },
       },
     })
     if (!response.id || !response.link) {

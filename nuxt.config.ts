@@ -9,6 +9,9 @@ export default defineNuxtConfig({
     asaasApiKey: '',
     asaasApiUrl: 'https://api-sandbox.asaas.com/v3',
     asaasWebhookToken: '',
+    registrationDataKey: '',
+    notificationWebhookUrl: '',
+    notificationWebhookToken: '',
     public: { appUrl: 'http://localhost:3000' },
   },
   routeRules: {
@@ -21,11 +24,11 @@ export default defineNuxtConfig({
   typescript: { strict: true },
   eslint: { config: { stylistic: { semi: false, quotes: 'single' } } },
   supabase: {
-    redirect: true,
+    redirect: false,
     redirectOptions: {
       login: '/login',
       callback: '/confirmacao',
-      exclude: ['/', '/cursos', '/cursos/**', '/api/courses/**', '/login', '/cadastro', '/esqueci-minha-senha', '/redefinir-senha', '/confirmacao'],
+      exclude: ['/', '/cursos', '/cursos/**', '/inscricao/**', '/api/courses/**', '/api/registrations/**', '/login', '/cadastro', '/esqueci-minha-senha', '/redefinir-senha', '/confirmacao'],
     },
   },
 })

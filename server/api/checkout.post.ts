@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { serverSupabaseServiceRole } from '#supabase/server'
 import { AsaasHostedCheckoutProvider } from '../services/asaas-hosted-checkout.provider'
+import { completeCommercialOrder } from '../services/complete-order.service'
 import { requireUser } from '../utils/auth'
 import { normalizeCommercialError } from '../utils/commercial'
 
@@ -11,7 +12,6 @@ export default defineEventHandler(async (event) => {
   const body = checkoutSchema.safeParse(await readBody(event))
   if (!body.success) { throw createError({ statusCode: 400, statusMessage: 'Curso inválido' }) }
   const config = useRuntimeConfig(event)
-  if (!config.asaasApiKey) { throw createError({ statusCode: 503, statusMessage: 'Checkout não configurado' }) }
   // The generated Supabase types are refreshed only after this migration is applied.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin = serverSupabaseServiceRole(event) as any
@@ -33,13 +33,23 @@ export default defineEventHandler(async (event) => {
     setResponseHeader(event, 'retry-after', 2)
     throw createError({ statusCode: 409, statusMessage: 'Checkout em preparação. Tente novamente em alguns segundos.' })
   }
+  if (Number(order.unit_price) === 0) {
+    await completeCommercialOrder(admin, order.order_id, `free:${order.order_id}`, 'FREE', {
+      url: String(config.notificationWebhookUrl || ''), token: String(config.notificationWebhookToken || ''), appUrl: String(config.public.appUrl),
+    })
+    return { order_id: order.order_id, checkout_url: `/checkout/retorno?pedido=${encodeURIComponent(order.order_id)}`, reused: false }
+  }
+  if (!config.asaasApiKey) {
+    await admin.rpc('cancel_commercial_order', { target_order_id: order.order_id, new_status: 'CANCELED' })
+    throw createError({ statusCode: 503, statusMessage: 'Checkout não configurado' })
+  }
   try {
     const provider = new AsaasHostedCheckoutProvider(String(config.asaasApiUrl), String(config.asaasApiKey))
     const checkout = await provider.createHostedCheckout({
       orderId: order.order_id, courseId: body.data.course_id, courseTitle: order.course_title,
       amount: Number(order.unit_price), expiresInMinutes: reservationMinutes,
       customer: { name: profile.name, email: user.email, phone: profile.phone },
-      callbackUrl: `${String(config.public.appUrl).replace(/\/$/, '')}/checkout/retorno`,
+      callbackUrl: `${String(config.public.appUrl).replace(/\/$/, '')}/checkout/retorno?pedido=${encodeURIComponent(order.order_id)}`,
     })
     const { error: updateError } = await admin.from('orders').update({
       status: 'WAITING_PAYMENT', asaas_checkout_id: checkout.id, asaas_checkout_url: checkout.url,

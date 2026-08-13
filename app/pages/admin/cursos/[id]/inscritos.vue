@@ -8,6 +8,9 @@ const filtered = computed(() => (participants.value ?? []).filter((item) => {
   const term = search.value.toLowerCase()
   return `${item.profiles?.name ?? ''} ${item.email} ${item.event_credentials?.[0]?.code ?? ''}`.toLowerCase().includes(term)
 }))
+const resend = async (enrollmentId: string, type: 'ENROLLMENT_CONFIRMATION' | 'EVENT_CREDENTIAL') => {
+  await $fetch(`/api/admin/courses/${courseId}/participants/${enrollmentId}/notify`, { method: 'POST', body: { type } })
+}
 </script>
 
 <template>
@@ -55,7 +58,17 @@ const filtered = computed(() => (participants.value ?? []).filter((item) => {
                 variant="secondary"
               >
                 Marcar entrada
-              </AppButton>
+              </AppButton><button
+                class="ml-2 text-xs font-bold underline"
+                @click="resend(item.id, 'ENROLLMENT_CONFIRMATION')"
+              >
+                Reenviar confirmação
+              </button><button
+                class="ml-2 text-xs font-bold underline"
+                @click="resend(item.id, 'EVENT_CREDENTIAL')"
+              >
+                Reenviar credencial
+              </button>
             </td>
           </tr>
         </tbody>

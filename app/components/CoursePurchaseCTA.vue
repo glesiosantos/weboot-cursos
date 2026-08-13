@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
 
-const props = defineProps<{ courseId: string }>()
+const props = defineProps<{ courseId: string, courseSlug: string }>()
 const user = useSupabaseUser()
 const soon = ref(false)
 const loading = ref(false)
@@ -21,7 +21,7 @@ const label = computed(() => {
   return 'ADQUIRIR CURSO'
 })
 const act = async () => {
-  if (!user.value) { return navigateTo(`/login?redirect=${encodeURIComponent(useRoute().fullPath)}`) }
+  if (!user.value) { return }
   if (context.value?.role === 'ADMIN') { return navigateTo(`/admin/cursos/${props.courseId}`) }
   if (context.value?.enrolled) { return navigateTo('/aluno/cursos') }
   loading.value = true
@@ -41,8 +41,9 @@ const act = async () => {
 <template>
   <div>
     <AppButton
+      :to="!user ? `/cursos/${encodeURIComponent(courseSlug)}/inscricao` : undefined"
       class="w-full"
-      @click="act"
+      @click="user ? act() : undefined"
     >
       {{ loading ? 'ABRINDO CHECKOUT…' : label }}
     </AppButton><p

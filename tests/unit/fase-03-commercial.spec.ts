@@ -5,6 +5,7 @@ const migration = readFileSync('supabase/migrations/20260812000200_commercial_ch
 const checkout = readFileSync('server/api/checkout.post.ts', 'utf8')
 const provider = readFileSync('server/services/asaas-hosted-checkout.provider.ts', 'utf8')
 const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
+const completion = readFileSync('server/services/complete-order.service.ts', 'utf8')
 const checkin = readFileSync('server/api/admin/events/[courseId]/checkin.post.ts', 'utf8')
 
 describe('Fase 03 commercial contract', () => {
@@ -50,7 +51,7 @@ describe('Fase 03 commercial contract', () => {
   })
 
   it('hashes opaque credentials and atomically blocks double check-in', () => {
-    expect(webhook).toContain('credential_token_hash: sha256(credential.token)')
+    expect(completion).toContain('credential_token_hash: sha256(credential.token)')
     expect(checkin).toContain('target_token_hash: sha256')
     expect(migration).toContain('for update')
     expect(migration).toContain('credential.status = \'USED\'')

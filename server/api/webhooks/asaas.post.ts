@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 import { serverSupabaseServiceRole } from '#supabase/server'
-import { createCredential, sha256 } from '../../utils/commercial'
+import { sha256 } from '../../utils/commercial'
+import { completeCommercialOrder } from '../../services/complete-order.service'
 
 type AsaasWebhook = {
   id?: string
@@ -44,12 +45,9 @@ export default defineEventHandler(async (event) => {
   try {
     if (externalReference) {
       if (['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'CHECKOUT_PAID'].includes(payload.event) && paymentId) {
-        const credential = createCredential()
-        await admin.rpc('confirm_commercial_payment', {
-          target_order_id: externalReference, external_payment_id: paymentId,
-          payment_status: payload.payment?.status ?? payload.event,
-          credential_code: credential.code, credential_token_hash: sha256(credential.token),
-        }).throwOnError()
+        await completeCommercialOrder(admin, externalReference, paymentId, payload.payment?.status ?? payload.event, {
+          url: String(config.notificationWebhookUrl || ''), token: String(config.notificationWebhookToken || ''), appUrl: String(config.public.appUrl),
+        })
       }
       else if (['PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(payload.event)) {
         await admin.rpc('cancel_commercial_order', { target_order_id: externalReference, new_status: 'REFUNDED' }).throwOnError()
