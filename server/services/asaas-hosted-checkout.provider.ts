@@ -2,6 +2,15 @@ import type { HostedCheckout, HostedCheckoutInput, PaymentProvider } from './pay
 
 type AsaasCheckoutResponse = { id?: string, link?: string, status?: string, errors?: { description?: string }[] }
 type CheckoutFetch = (url: string, options: Record<string, unknown>) => Promise<AsaasCheckoutResponse>
+const ASAAS_ITEM_NAME_MAX_LENGTH = 30
+
+const toAsaasItemName = (courseTitle: string) => {
+  const normalizedTitle = courseTitle.trim()
+  const characters = Array.from(normalizedTitle)
+  if (characters.length <= ASAAS_ITEM_NAME_MAX_LENGTH) { return normalizedTitle }
+  return `${characters.slice(0, ASAAS_ITEM_NAME_MAX_LENGTH - 1).join('')}…`
+}
+
 const defaultCheckoutFetch: CheckoutFetch = async (url, options) => {
   const response = await fetch(url, {
     method: String(options.method),
@@ -36,7 +45,7 @@ export class AsaasHostedCheckoutProvider implements PaymentProvider {
           cancelUrl: input.callbackUrl,
           expiredUrl: input.callbackUrl,
         },
-        items: [{ externalReference: input.courseId, name: input.courseTitle, quantity: 1, value: input.amount }],
+        items: [{ externalReference: input.courseId, name: toAsaasItemName(input.courseTitle), quantity: 1, value: input.amount }],
         customerData: {
           name: input.customer.name,
           email: input.customer.email,
@@ -45,9 +54,13 @@ export class AsaasHostedCheckoutProvider implements PaymentProvider {
         },
       },
     })
-    if (!response.id || !response.link) {
+    if (!response.id) {
       throw createError({ statusCode: 502, statusMessage: response.errors?.[0]?.description ?? 'Resposta inválida do Asaas' })
     }
-    return { id: response.id, url: response.link, status: response.status ?? 'ACTIVE' }
+    return {
+      id: response.id,
+      url: response.link ?? `https://asaas.com/checkoutSession/show?id=${encodeURIComponent(response.id)}`,
+      status: response.status ?? 'ACTIVE',
+    }
   }
 }

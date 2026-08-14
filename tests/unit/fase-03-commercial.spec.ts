@@ -7,6 +7,7 @@ const provider = readFileSync('server/services/asaas-hosted-checkout.provider.ts
 const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
 const completion = readFileSync('server/services/complete-order.service.ts', 'utf8')
 const checkin = readFileSync('server/api/admin/events/[courseId]/checkin.post.ts', 'utf8')
+const checkoutFunctionFix = readFileSync('supabase/migrations/20260813000200_fix_checkout_function_ambiguity.sql', 'utf8')
 
 describe('Fase 03 commercial contract', () => {
   it('takes fixed and batch prices only inside the database transaction', () => {
@@ -33,11 +34,18 @@ describe('Fase 03 commercial contract', () => {
     expect(migration).toContain('exception when unique_violation')
   })
 
+  it('resolves output-column ambiguity in both checkout functions', () => {
+    expect(checkoutFunctionFix).toContain('prepare_checkout_order(uuid,uuid,integer)')
+    expect(checkoutFunctionFix).toContain('prepare_guest_checkout_order(uuid,text,text,text,text,text,text,text,boolean,integer)')
+    expect(checkoutFunctionFix).toContain('#variable_conflict use_column')
+  })
+
   it('uses only hosted Asaas Sandbox checkout', () => {
     expect(provider).toContain('api-sandbox.asaas.com')
     expect(provider).toContain('/checkouts')
     expect(provider).toContain('chargeTypes: [\'DETACHED\']')
     expect(provider).toContain('billingTypes: [\'PIX\', \'CREDIT_CARD\']')
+    expect(provider).toContain('https://asaas.com/checkoutSession/show?id=')
     expect(provider).not.toMatch(/cardNumber|creditCard|cvv|securityCode/i)
   })
 

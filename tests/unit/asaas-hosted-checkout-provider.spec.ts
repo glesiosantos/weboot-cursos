@@ -31,6 +31,20 @@ describe('AsaasHostedCheckoutProvider', () => {
     }))
   })
 
+  it('limits the checkout item name to the 30 characters accepted by Asaas', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ id: 'checkout-id' })
+    const provider = new AsaasHostedCheckoutProvider('https://api-sandbox.asaas.com/v3', 'sandbox-key', fetchMock)
+    const longTitle = 'Formação completa em desenvolvimento web moderno'
+
+    await provider.createHostedCheckout({ ...input, courseTitle: longTitle })
+
+    expect(fetchMock).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+      body: expect.objectContaining({
+        items: [expect.objectContaining({ name: 'Formação completa em desenvol…' })],
+      }),
+    }))
+  })
+
   it('refuses a production API URL in Fase 03', async () => {
     const provider = new AsaasHostedCheckoutProvider('https://api.asaas.com/v3', 'production-key')
     await expect(provider.createHostedCheckout(input)).rejects.toMatchObject({ statusCode: 503 })

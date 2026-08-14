@@ -7,13 +7,12 @@ const user = useSupabaseUser()
 const client = useSupabaseClient<Database>()
 const { data: course } = await useFetch<Course>(`/api/courses/${encodeURIComponent(String(route.params.slug))}`)
 if (!course.value) { throw createError({ statusCode: 404, statusMessage: 'Curso não encontrado' }) }
-const form = reactive({ full_name: '', cpf: '', whatsapp: '', email: '', email_confirmation: '', terms_accepted: false, marketing_accepted: false })
+const form = reactive({ full_name: '', cpf: '', whatsapp: '', email: '', terms_accepted: false, marketing_accepted: false })
 if (user.value) {
   const { data: profile } = await client.from('profiles').select('name,phone').eq('id', user.value.sub).maybeSingle()
   form.full_name = profile?.name ?? ''
   form.whatsapp = profile?.phone ?? ''
   form.email = user.value.email ?? ''
-  form.email_confirmation = user.value.email ?? ''
 }
 const loading = ref(false)
 const errorMessage = ref('')
@@ -27,7 +26,8 @@ const submit = async () => {
     await navigateTo(result.checkout_url, { external: result.checkout_url.startsWith('http') })
   }
   catch (error: unknown) {
-    errorMessage.value = typeof error === 'object' && error && 'statusMessage' in error ? String(error.statusMessage) : 'Não foi possível iniciar sua inscrição.'
+    const fetchError = error as { data?: { statusMessage?: string } }
+    errorMessage.value = fetchError.data?.statusMessage ?? 'Não foi possível iniciar sua inscrição.'
   }
   finally { loading.value = false }
 }
@@ -51,8 +51,8 @@ const submit = async () => {
             name="full_name"
             autocomplete="name"
             required
-            minlength="3"
-            maxlength="120"
+            minlength="6"
+            maxlength="150"
             class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
           >
         </label>
@@ -85,15 +85,6 @@ const submit = async () => {
             type="email"
             autocomplete="email"
             required
-            class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-          >
-        </label>
-        <label class="block font-bold">Confirmar email <span class="font-normal text-muted">(opcional)</span>
-          <input
-            v-model="form.email_confirmation"
-            name="email_confirmation"
-            type="email"
-            autocomplete="email"
             class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
           >
         </label>

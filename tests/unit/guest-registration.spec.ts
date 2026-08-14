@@ -19,6 +19,13 @@ describe('guest registration', () => {
     expect(guestRegistrationSchema.safeParse({ ...valid, terms_accepted: false }).success).toBe(false)
   })
 
+  it('accepts customer names from 6 to 150 characters', () => {
+    expect(guestRegistrationSchema.safeParse({ ...valid, full_name: 'a'.repeat(5) }).success).toBe(false)
+    expect(guestRegistrationSchema.safeParse({ ...valid, full_name: 'a'.repeat(6) }).success).toBe(true)
+    expect(guestRegistrationSchema.safeParse({ ...valid, full_name: 'a'.repeat(150) }).success).toBe(true)
+    expect(guestRegistrationSchema.safeParse({ ...valid, full_name: 'a'.repeat(151) }).success).toBe(false)
+  })
+
   it('keeps CPF protected and guest orders traceable without an auth user', () => {
     expect(migration).toContain('cpf_encrypted text not null')
     expect(migration).toContain('cpf_hash text not null')
@@ -38,6 +45,10 @@ describe('guest registration', () => {
   it('prefills the exact supported Asaas customer fields', () => {
     expect(provider).toContain('cpfCnpj: input.customer.cpfCnpj')
     expect(provider).toContain('phone: checkoutPhone')
+  })
+
+  it('does not require an email confirmation field', () => {
+    expect(guestRegistrationSchema.safeParse({ ...valid, email_confirmation: valid.email }).success).toBe(false)
   })
 
   it('creates enrollment only through the shared confirmation service', () => {

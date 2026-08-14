@@ -23,18 +23,15 @@ export const normalizeWhatsapp = (value: string) => {
 
 export const guestRegistrationSchema = z.object({
   course_id: z.uuid('Curso inválido'),
-  full_name: z.string().trim().min(3, 'Informe o nome completo').max(120),
+  full_name: z.string().trim()
+    .min(6, 'O nome deve ter no mínimo 6 caracteres')
+    .max(150, 'O nome deve ter no máximo 150 caracteres'),
   cpf: z.string().refine(isValidCpf, 'CPF inválido').transform(digits),
   whatsapp: z.string().transform(normalizeWhatsapp).refine(value => value !== null, 'WhatsApp inválido'),
   email: z.email('Email inválido').transform(value => value.trim().toLowerCase()),
-  email_confirmation: z.email('Confirmação de email inválida').optional(),
   terms_accepted: z.literal(true, 'Aceite os Termos de Uso e a Política de Privacidade'),
   marketing_accepted: z.boolean().default(false),
-}).strict().superRefine((value, context) => {
-  if (value.email_confirmation && value.email_confirmation.toLowerCase() !== value.email) {
-    context.addIssue({ code: 'custom', path: ['email_confirmation'], message: 'Os emails não coincidem' })
-  }
-})
+}).strict()
 
 const keyedHash = (value: string, secret: string) => createHash('sha256').update(`${secret}:${value}`).digest('hex')
 
