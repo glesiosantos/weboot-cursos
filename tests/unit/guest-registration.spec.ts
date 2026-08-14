@@ -42,7 +42,8 @@ describe('guest registration', () => {
     expect(migration).toContain('raise exception \'course batch sold out\'')
   })
 
-  it('prefills the exact supported Asaas customer fields', () => {
+  it('prefills the supported Asaas customer fields with the current registration data', () => {
+    expect(provider).toContain('customerData:')
     expect(provider).toContain('cpfCnpj: input.customer.cpfCnpj')
     expect(provider).toContain('phone: checkoutPhone')
   })
