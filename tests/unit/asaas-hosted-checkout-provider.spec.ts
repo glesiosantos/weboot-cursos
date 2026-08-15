@@ -7,7 +7,6 @@ const input = {
   courseTitle: 'Destravando SQL',
   amount: 199.9,
   expiresInMinutes: 30,
-  customer: { name: 'Aluno Teste', email: 'student@example.test', phone: '+5511999999999', cpfCnpj: '52998224725' },
   callbackUrl: 'https://app.example.test/checkout/retorno',
 }
 
@@ -30,9 +29,7 @@ describe('AsaasHostedCheckoutProvider', () => {
       body: expect.objectContaining({ externalReference: input.orderId, minutesToExpire: 30, items: [expect.objectContaining({ value: 199.9 })] }),
     }))
     const request = fetchMock.mock.calls[0]?.[1] as { body: Record<string, unknown> }
-    expect(request.body).toHaveProperty('customerData', {
-      name: 'Aluno Teste', email: 'student@example.test', cpfCnpj: '52998224725', phone: '11999999999',
-    })
+    expect(request.body).not.toHaveProperty('customerData')
   })
 
   it('limits the checkout item name to the 30 characters accepted by Asaas', async () => {

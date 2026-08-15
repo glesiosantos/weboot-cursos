@@ -4,7 +4,6 @@ export type HostedCheckoutInput = {
   courseTitle: string
   amount: number
   expiresInMinutes: number
-  customer: { name: string, email: string, phone?: string, cpfCnpj?: string, mobilePhone?: string }
   callbackUrl: string
 }
 

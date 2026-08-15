@@ -48,7 +48,6 @@ export default defineEventHandler(async (event) => {
     const checkout = await provider.createHostedCheckout({
       orderId: order.order_id, courseId: body.data.course_id, courseTitle: order.course_title,
       amount: Number(order.unit_price), expiresInMinutes: reservationMinutes,
-      customer: { name: profile.name, email: user.email, phone: profile.phone },
       callbackUrl: `${String(config.public.appUrl).replace(/\/$/, '')}/checkout/retorno?pedido=${encodeURIComponent(order.order_id)}`,
     })
     const { error: updateError } = await admin.from('orders').update({

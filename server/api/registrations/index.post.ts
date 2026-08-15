@@ -50,7 +50,6 @@ export default defineEventHandler(async (event) => {
     const checkout = await provider.createHostedCheckout({
       orderId: order.order_id, courseId: parsed.data.course_id, courseTitle: order.course_title,
       amount: Number(order.unit_price), expiresInMinutes: reservationMinutes,
-      customer: { name: parsed.data.full_name, email: parsed.data.email, cpfCnpj: parsed.data.cpf, mobilePhone: parsed.data.whatsapp },
       callbackUrl: returnUrl,
     })
     const { error: updateError } = await admin.from('orders').update({ status: 'WAITING_PAYMENT', asaas_checkout_id: checkout.id, asaas_checkout_url: checkout.url }).eq('id', order.order_id)

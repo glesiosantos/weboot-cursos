@@ -42,10 +42,9 @@ describe('guest registration', () => {
     expect(migration).toContain('raise exception \'course batch sold out\'')
   })
 
-  it('prefills the supported Asaas customer fields with the current registration data', () => {
-    expect(provider).toContain('customerData:')
-    expect(provider).toContain('cpfCnpj: input.customer.cpfCnpj')
-    expect(provider).toContain('phone: checkoutPhone')
+  it('lets the hosted Asaas checkout collect the complete payer address', () => {
+    expect(provider).not.toContain('customerData:')
+    expect(provider).not.toContain('cpfCnpj:')
   })
 
   it('does not require an email confirmation field', () => {
