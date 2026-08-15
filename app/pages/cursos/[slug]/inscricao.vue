@@ -7,7 +7,10 @@ const user = useSupabaseUser()
 const client = useSupabaseClient<Database>()
 const { data: course } = await useFetch<Course>(`/api/courses/${encodeURIComponent(String(route.params.slug))}`)
 if (!course.value) { throw createError({ statusCode: 404, statusMessage: 'Curso não encontrado' }) }
-const form = reactive({ full_name: '', cpf: '', whatsapp: '', email: '', terms_accepted: false, marketing_accepted: false })
+const form = reactive({
+  full_name: '', cpf: '', whatsapp: '', email: '', postal_code: '', address: '', address_number: '',
+  complement: '', province: '', city: '', city_ibge: '', terms_accepted: false, marketing_accepted: false,
+})
 if (user.value) {
   const { data: profile } = await client.from('profiles').select('name,phone').eq('id', user.value.sub).maybeSingle()
   form.full_name = profile?.name ?? ''
@@ -15,7 +18,26 @@ if (user.value) {
   form.email = user.value.email ?? ''
 }
 const loading = ref(false)
+const loadingAddress = ref(false)
 const errorMessage = ref('')
+const lookupPostalCode = async () => {
+  const postalCode = form.postal_code.replace(/\D/g, '')
+  if (postalCode.length !== 8) { return }
+  loadingAddress.value = true
+  try {
+    const address = await $fetch<{ erro?: boolean, logradouro?: string, bairro?: string, localidade?: string, ibge?: string }>(`https://viacep.com.br/ws/${postalCode}/json/`)
+    if (address.erro || !address.ibge) { throw new Error('CEP não encontrado') }
+    form.address = address.logradouro ?? form.address
+    form.province = address.bairro ?? form.province
+    form.city = address.localidade ?? ''
+    form.city_ibge = address.ibge
+  }
+  catch {
+    form.city_ibge = ''
+    errorMessage.value = 'Não foi possível localizar o CEP informado.'
+  }
+  finally { loadingAddress.value = false }
+}
 const submit = async () => {
   loading.value = true
   errorMessage.value = ''
@@ -88,6 +110,72 @@ const submit = async () => {
             class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
           >
         </label>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <label class="block font-bold">CEP
+            <input
+              v-model="form.postal_code"
+              name="postal_code"
+              inputmode="numeric"
+              autocomplete="postal-code"
+              required
+              placeholder="00000-000"
+              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+              @blur="lookupPostalCode"
+            >
+          </label>
+          <label class="block font-bold">Número
+            <input
+              v-model="form.address_number"
+              name="address_number"
+              autocomplete="address-line2"
+              required
+              maxlength="20"
+              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+            >
+          </label>
+        </div>
+        <label class="block font-bold">Endereço
+          <input
+            v-model="form.address"
+            name="address"
+            autocomplete="address-line1"
+            required
+            maxlength="255"
+            :disabled="loadingAddress"
+            class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+          >
+        </label>
+        <label class="block font-bold">Complemento <span class="font-normal text-muted">(opcional)</span>
+          <input
+            v-model="form.complement"
+            name="complement"
+            autocomplete="address-line3"
+            maxlength="255"
+            class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+          >
+        </label>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <label class="block font-bold">Bairro
+            <input
+              v-model="form.province"
+              name="province"
+              required
+              maxlength="100"
+              :disabled="loadingAddress"
+              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+            >
+          </label>
+          <label class="block font-bold">Cidade
+            <input
+              v-model="form.city"
+              name="city"
+              required
+              readonly
+              :placeholder="loadingAddress ? 'Consultando CEP…' : ''"
+              class="mt-2 w-full rounded-xl border border-border bg-slate-50 p-3 font-normal"
+            >
+          </label>
+        </div>
         <label class="flex items-start gap-3 text-sm"><input
           v-model="form.terms_accepted"
           type="checkbox"

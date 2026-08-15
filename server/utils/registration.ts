@@ -1,4 +1,4 @@
-import { createCipheriv, createHash, randomBytes } from 'node:crypto'
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
 import { z } from 'zod'
 
 const digits = (value: string) => value.replace(/\D/g, '')
@@ -29,6 +29,13 @@ export const guestRegistrationSchema = z.object({
   cpf: z.string().refine(isValidCpf, 'CPF inválido').transform(digits),
   whatsapp: z.string().transform(normalizeWhatsapp).refine(value => value !== null, 'WhatsApp inválido'),
   email: z.email('Email inválido').transform(value => value.trim().toLowerCase()),
+  postal_code: z.string().transform(digits).refine(value => value.length === 8, 'CEP inválido'),
+  address: z.string().trim().min(3, 'Endereço inválido').max(255, 'Endereço muito longo'),
+  address_number: z.string().trim().min(1, 'Informe o número do endereço').max(20, 'Número do endereço muito longo'),
+  complement: z.string().trim().max(255, 'Complemento muito longo').default(''),
+  province: z.string().trim().min(2, 'Bairro inválido').max(100, 'Bairro muito longo'),
+  city: z.string().trim().min(2, 'Cidade inválida').max(100, 'Cidade muito longa'),
+  city_ibge: z.string().regex(/^\d{7}$/, 'Consulte um CEP válido').transform(Number),
   terms_accepted: z.literal(true, 'Aceite os Termos de Uso e a Política de Privacidade'),
   marketing_accepted: z.boolean().default(false),
 }).strict()
@@ -45,4 +52,13 @@ export const protectRegistration = (cpf: string, secret: string) => {
     cpfHash: keyedHash(cpf, secret),
     cpfEncrypted: Buffer.concat([iv, cipher.getAuthTag(), encrypted]).toString('base64'),
   }
+}
+
+export const revealRegistrationCpf = (protectedValue: string, secret: string) => {
+  if (secret.length < 32) { throw new Error('Proteção de dados da inscrição não configurada') }
+  const payload = Buffer.from(protectedValue, 'base64')
+  if (payload.length < 29) { throw new Error('CPF protegido inválido') }
+  const decipher = createDecipheriv('aes-256-gcm', createHash('sha256').update(secret).digest(), payload.subarray(0, 12))
+  decipher.setAuthTag(payload.subarray(12, 28))
+  return Buffer.concat([decipher.update(payload.subarray(28)), decipher.final()]).toString('utf8')
 }

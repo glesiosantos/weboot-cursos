@@ -9,6 +9,12 @@ export default defineNuxtConfig({
     asaasApiKey: '',
     asaasApiUrl: 'https://api-sandbox.asaas.com/v3',
     asaasWebhookToken: '',
+    asaasPixPercent: 0,
+    asaasPixFixed: 1.99,
+    asaasCardCashPercent: 2.99,
+    asaasCardInstallmentPercent: 3.49,
+    asaasCardFixed: 0.49,
+    paymentServiceFee: 5,
     registrationDataKey: '',
     notificationWebhookUrl: '',
     notificationWebhookToken: '',
@@ -28,7 +34,7 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: '/login',
       callback: '/confirmacao',
-      exclude: ['/', '/cursos', '/cursos/**', '/inscricao/**', '/api/courses/**', '/api/registrations/**', '/login', '/cadastro', '/esqueci-minha-senha', '/redefinir-senha', '/confirmacao'],
+      exclude: ['/', '/cursos', '/cursos/**', '/inscricao/**', '/pagamento/**', '/api/courses/**', '/api/registrations/**', '/api/payments/**', '/login', '/cadastro', '/esqueci-minha-senha', '/redefinir-senha', '/confirmacao'],
     },
   },
 })

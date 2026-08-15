@@ -3,11 +3,16 @@ import { describe, expect, it } from 'vitest'
 import { guestRegistrationSchema, isValidCpf, normalizeWhatsapp } from '../../server/utils/registration'
 
 const migration = readFileSync('supabase/migrations/20260813000100_guest_registration.sql', 'utf8')
+const identityMigration = readFileSync('supabase/migrations/20260815000100_unique_registration_identity_and_transparent_payment.sql', 'utf8')
 const endpoint = readFileSync('server/api/registrations/index.post.ts', 'utf8')
 const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
-const provider = readFileSync('server/services/asaas-hosted-checkout.provider.ts', 'utf8')
 
-const valid = { course_id: 'a174f612-35c6-45c0-bf07-a0047bb6fdd3', full_name: 'Maria da Silva', cpf: '529.982.247-25', whatsapp: '(86) 99999-9999', email: 'maria@example.com', terms_accepted: true, marketing_accepted: false }
+const valid = {
+  course_id: 'a174f612-35c6-45c0-bf07-a0047bb6fdd3', full_name: 'Maria da Silva', cpf: '529.982.247-25',
+  whatsapp: '(86) 99999-9999', email: 'maria@example.com', postal_code: '64000-100', address: 'Rua das Flores',
+  address_number: '123', complement: '', province: 'Centro', city: 'Teresina', city_ibge: '2211001',
+  terms_accepted: true, marketing_accepted: false,
+}
 
 describe('guest registration', () => {
   it('validates and normalizes personal data on the server', () => {
@@ -42,9 +47,21 @@ describe('guest registration', () => {
     expect(migration).toContain('raise exception \'course batch sold out\'')
   })
 
-  it('lets the hosted Asaas checkout collect the complete payer address', () => {
-    expect(provider).not.toContain('customerData:')
-    expect(provider).not.toContain('cpfCnpj:')
+  it('stores the validated payer address for transparent payment', () => {
+    expect(endpoint).toContain('admin.from(\'registration_contacts\').update({')
+    expect(endpoint).toContain('address: parsed.data.address')
+    expect(endpoint).toContain('city_ibge: parsed.data.city_ibge')
+  })
+
+  it('keeps a single contact per CPF and reuses it for multiple orders', () => {
+    expect(identityMigration).toContain('unique index registration_contacts_cpf_hash_key')
+    expect(identityMigration).toContain('pg_advisory_xact_lock')
+    expect(identityMigration).toContain('where cpf_hash = participant_cpf_hash for update')
+    expect(identityMigration).toContain('alter table public.orders drop constraint if exists orders_registration_id_key')
+    expect(endpoint).toContain('admin.from(\'orders\').update({ public_reference_hash: sha256(reference) })')
+    expect(identityMigration).toContain('orders_public_reference_hash_key')
+    expect(endpoint).toContain('`/pagamento/${encodeURIComponent(reference)}`')
+    expect(endpoint).not.toContain('AsaasHostedCheckoutProvider')
   })
 
   it('does not require an email confirmation field', () => {

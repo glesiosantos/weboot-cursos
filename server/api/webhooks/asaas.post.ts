@@ -45,6 +45,14 @@ export default defineEventHandler(async (event) => {
   try {
     if (externalReference) {
       if (['PAYMENT_CONFIRMED', 'PAYMENT_RECEIVED', 'CHECKOUT_PAID'].includes(payload.event) && paymentId) {
+        const { data: expectedOrder } = await admin.from('orders').select('total,asaas_payment_id').eq('id', externalReference).single()
+        if (!expectedOrder) { throw createError({ statusCode: 404, statusMessage: 'Pedido do pagamento não encontrado' }) }
+        if (payload.payment) {
+          if (expectedOrder.asaas_payment_id !== payload.payment.id) { throw createError({ statusCode: 409, statusMessage: 'Pagamento não pertence ao pedido' }) }
+          if (payload.payment.value === undefined || Math.round(Number(payload.payment.value) * 100) !== Math.round(Number(expectedOrder.total) * 100)) {
+            throw createError({ statusCode: 409, statusMessage: 'Valor recebido diverge do pedido' })
+          }
+        }
         await completeCommercialOrder(admin, externalReference, paymentId, payload.payment?.status ?? payload.event, {
           url: String(config.notificationWebhookUrl || ''), token: String(config.notificationWebhookToken || ''), appUrl: String(config.public.appUrl),
         })

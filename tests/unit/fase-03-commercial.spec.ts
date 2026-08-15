@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const migration = readFileSync('supabase/migrations/20260812000200_commercial_checkout_and_event_access.sql', 'utf8')
-const checkout = readFileSync('server/api/checkout.post.ts', 'utf8')
-const provider = readFileSync('server/services/asaas-hosted-checkout.provider.ts', 'utf8')
+const registration = readFileSync('server/api/registrations/index.post.ts', 'utf8')
+const provider = readFileSync('server/services/asaas-transparent-payment.provider.ts', 'utf8')
 const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
 const completion = readFileSync('server/services/complete-order.service.ts', 'utf8')
 const checkin = readFileSync('server/api/admin/events/[courseId]/checkin.post.ts', 'utf8')
@@ -14,8 +14,7 @@ describe('Fase 03 commercial contract', () => {
     expect(migration).toContain('selected_course.pricing_type = \'BATCHES\'')
     expect(migration).toContain('get_current_course_batch(target_course_id, now())')
     expect(migration).toContain('selected_course.promotional_price')
-    expect(checkout).toContain('z.object({ course_id: z.uuid() }).strict()')
-    expect(checkout).not.toMatch(/body\.data\.(price|total|unit_price)/)
+    expect(registration).not.toMatch(/body\.data\.(price|total|unit_price)/)
   })
 
   it('locks capacity and counts confirmed plus non-expired reservations', () => {
@@ -29,7 +28,7 @@ describe('Fase 03 commercial contract', () => {
   it('reuses a valid waiting checkout and expires stale reservations', () => {
     expect(migration).toContain('o.status = \'WAITING_PAYMENT\' and o.expires_at > now()')
     expect(migration).toContain('set status = \'EXPIRED\'')
-    expect(checkout).toContain('reused: true')
+    expect(registration).toContain('reused: order.reused')
     expect(migration).toContain('orders_one_active_checkout_idx')
     expect(migration).toContain('exception when unique_violation')
   })
@@ -40,13 +39,12 @@ describe('Fase 03 commercial contract', () => {
     expect(checkoutFunctionFix).toContain('#variable_conflict use_column')
   })
 
-  it('uses only hosted Asaas Sandbox checkout', () => {
+  it('uses only transparent Asaas Sandbox payment', () => {
     expect(provider).toContain('api-sandbox.asaas.com')
-    expect(provider).toContain('/checkouts')
-    expect(provider).toContain('chargeTypes: [\'DETACHED\']')
-    expect(provider).toContain('billingTypes: [\'PIX\', \'CREDIT_CARD\']')
-    expect(provider).toContain('https://asaas.com/checkoutSession/show?id=')
-    expect(provider).not.toMatch(/cardNumber|creditCard|cvv|securityCode/i)
+    expect(provider).toContain('/payments')
+    expect(provider).toContain('billingType: \'PIX\'')
+    expect(provider).toContain('billingType: \'CREDIT_CARD\'')
+    expect(registration).toContain('`/pagamento/${encodeURIComponent(reference)}`')
   })
 
   it('authenticates and deduplicates webhooks before idempotent effects', () => {

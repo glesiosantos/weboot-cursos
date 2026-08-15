@@ -1,6 +1,5 @@
 import { randomBytes } from 'node:crypto'
 import { serverSupabaseServiceRole } from '#supabase/server'
-import { AsaasHostedCheckoutProvider } from '../../services/asaas-hosted-checkout.provider'
 import { completeCommercialOrder } from '../../services/complete-order.service'
 import { normalizeCommercialError, sha256 } from '../../utils/commercial'
 import { enforceRegistrationRateLimit } from '../../utils/rate-limit'
@@ -32,32 +31,23 @@ export default defineEventHandler(async (event) => {
   })
   if (error || !data?.[0]) { throw normalizeCommercialError(error?.message ?? 'order preparation failed') }
   const order = data[0]
-  if (order.reused) {
-    const { data: existing } = await admin.from('orders').select('asaas_checkout_url,registration_id').eq('id', order.order_id).single()
-    if (existing?.asaas_checkout_url) { return { checkout_url: existing.asaas_checkout_url, reused: true } }
-    throw createError({ statusCode: 409, statusMessage: 'Já existe uma inscrição pendente para estes dados.' })
-  }
-  const returnUrl = `${String(config.public.appUrl).replace(/\/$/, '')}/inscricao/retorno?referencia=${encodeURIComponent(reference)}`
+  const { error: contactError } = await admin.from('registration_contacts').update({
+    postal_code: parsed.data.postal_code,
+    address: parsed.data.address,
+    address_number: parsed.data.address_number,
+    complement: parsed.data.complement,
+    province: parsed.data.province,
+    city: parsed.data.city,
+    city_ibge: parsed.data.city_ibge,
+  }).eq('id', order.registration_id)
+  if (contactError) { throw contactError }
+  const { error: referenceError } = await admin.from('orders').update({ public_reference_hash: sha256(reference) }).eq('id', order.order_id)
+  if (referenceError) { throw referenceError }
   if (Number(order.unit_price) === 0) {
     await completeCommercialOrder(admin, order.order_id, `free:${order.order_id}`, 'FREE', {
       url: String(config.notificationWebhookUrl || ''), token: String(config.notificationWebhookToken || ''), appUrl: String(config.public.appUrl),
     })
     return { checkout_url: `/inscricao/${encodeURIComponent(reference)}/confirmada`, free: true }
   }
-  if (!config.asaasApiKey) { await admin.rpc('cancel_commercial_order', { target_order_id: order.order_id, new_status: 'CANCELED' }); throw createError({ statusCode: 503, statusMessage: 'Checkout não configurado' }) }
-  try {
-    const provider = new AsaasHostedCheckoutProvider(String(config.asaasApiUrl), String(config.asaasApiKey))
-    const checkout = await provider.createHostedCheckout({
-      orderId: order.order_id, courseId: parsed.data.course_id, courseTitle: order.course_title,
-      amount: Number(order.unit_price), expiresInMinutes: reservationMinutes,
-      callbackUrl: returnUrl,
-    })
-    const { error: updateError } = await admin.from('orders').update({ status: 'WAITING_PAYMENT', asaas_checkout_id: checkout.id, asaas_checkout_url: checkout.url }).eq('id', order.order_id)
-    if (updateError) { throw updateError }
-    return { checkout_url: checkout.url, reused: false }
-  }
-  catch (error) {
-    await admin.rpc('cancel_commercial_order', { target_order_id: order.order_id, new_status: 'CANCELED' })
-    throw error
-  }
+  return { checkout_url: `/pagamento/${encodeURIComponent(reference)}`, reused: order.reused }
 })

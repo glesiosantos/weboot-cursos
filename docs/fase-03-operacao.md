@@ -2,11 +2,11 @@
 
 ## Arquitetura
 
-O Nuxt cria o pedido e a reserva no banco, chama exclusivamente o Checkout hospedado do Asaas Sandbox e redireciona o aluno ao `link` retornado. Nenhum número de cartão, CVV ou dado financeiro sensível passa pela aplicação. `PaymentProvider` isola a regra comercial de `AsaasHostedCheckoutProvider`; `INTERNAL_CHECKOUT` fica explicitamente como feature futura.
+O Nuxt cria o pedido e a reserva no banco e abre o checkout transparente em `/pagamento/[reference]`. Pix e cartão são processados pela API do Asaas Sandbox sem redirecionamento. Número do cartão e CVV existem somente em memória durante a requisição e nunca são persistidos ou registrados em logs. Como os dados passam pelo backend, HTTPS e conformidade PCI DSS SAQ-D são requisitos operacionais antes de produção.
 
 ### Inscrição pública sem login
 
-`/cursos/[slug]/inscricao` cria primeiro `registration_contacts`, `orders` e, quando houver limite de vagas, `seat_reservations`. Nenhum usuário Auth é criado na abertura ou no envio do formulário. CPF é normalizado no servidor, cifrado com `NUXT_REGISTRATION_DATA_KEY` e indexado somente por hash com chave; nunca integra URLs, QR Codes, logs ou respostas públicas. A referência do visitante é aleatória e somente seu hash é persistido.
+`/cursos/[slug]/inscricao` cria ou atualiza um único `registration_contacts` por CPF, cria `orders` e, quando houver limite de vagas, `seat_reservations`. O banco usa lock transacional e índice único em `cpf_hash`, evitando duplicidade inclusive em requisições simultâneas. Uma pessoa pode possuir vários pedidos; cada referência pública pertence ao pedido. Nenhum usuário Auth é criado antes da confirmação. CPF é normalizado no servidor, cifrado com `NUXT_REGISTRATION_DATA_KEY` e indexado somente por hash com chave; nunca integra URLs, QR Codes, logs ou respostas públicas.
 
 O modelo atual usa `course_batches` como oferta comercial/turma e `course_presential_details` para data e local. Não foi criada uma `course_offerings` paralela para evitar duas fontes de preço, vagas e período. A matrícula registra `course_batch_id`, permitindo evolução posterior sem perder a turma comprada.
 
@@ -14,21 +14,21 @@ Pagamento confirmado chama uma única rotina: associa conta existente por email 
 
 Notificações ficam atrás de `NotificationProvider`. Configure `NUXT_NOTIFICATION_WEBHOOK_URL` e, opcionalmente, `NUXT_NOTIFICATION_WEBHOOK_TOKEN`; sem provider, o evento é registrado como `SKIPPED`, sem simular entrega. WhatsApp não fica acoplado ao checkout. O comprovante PDF é gerado sob demanda em rota autenticada e usa cache privado desabilitado.
 
-Permanecem futuras: checkout interno, múltiplos participantes, inscrição corporativa, transferência de ingresso, lista de espera, scanner avançado por câmera, Apple/Google Wallet e link guest revogável para a credencial. Nesta entrega, a credencial fica em `/aluno/eventos` depois da criação segura da conta.
+Permanecem futuras: múltiplos participantes, inscrição corporativa, transferência de ingresso, lista de espera, scanner avançado por câmera, Apple/Google Wallet e link guest revogável para a credencial. Nesta entrega, a credencial fica em `/aluno/eventos` depois da criação segura da conta.
 
 ## Configuração
 
-Configure somente no servidor `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_WEBHOOK_TOKEN` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Nesta fase, `NUXT_ASAAS_API_URL` deve continuar `https://api-sandbox.asaas.com/v3`. Defina `NUXT_PUBLIC_APP_URL` com a origem HTTPS pública usada nos callbacks.
+Configure somente no servidor `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_WEBHOOK_TOKEN` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Nesta fase, `NUXT_ASAAS_API_URL` deve continuar `https://api-sandbox.asaas.com/v3`. Configure as tarifas reais da conta em `NUXT_ASAAS_PIX_PERCENT`, `NUXT_ASAAS_PIX_FIXED`, `NUXT_ASAAS_CARD_CASH_PERCENT`, `NUXT_ASAAS_CARD_INSTALLMENT_PERCENT` e `NUXT_ASAAS_CARD_FIXED`. `NUXT_PAYMENT_SERVICE_FEE` tem padrão de R$ 5,00.
 
-No Sandbox, cadastre `https://SEU_DOMINIO/api/webhooks/asaas`, o mesmo token seguro (32–255 caracteres) e apenas os eventos necessários: `CHECKOUT_PAID`, `CHECKOUT_CANCELED`, `CHECKOUT_EXPIRED`, `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_REFUNDED`, `PAYMENT_DELETED` e `PAYMENT_OVERDUE`. Em desenvolvimento, exponha a aplicação com um túnel HTTPS como ngrok; nunca grave a URL temporária no código.
+No Sandbox, cadastre `https://SEU_DOMINIO/api/webhooks/asaas`, o mesmo token seguro (32–255 caracteres) e apenas os eventos necessários: `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_REFUNDED`, `PAYMENT_DELETED` e `PAYMENT_OVERDUE`. Em desenvolvimento, exponha a aplicação com um túnel HTTPS como ngrok; nunca grave a URL temporária no código.
 
 ## Regras
 
-- O frontend envia somente `course_id`; preço fixo/promocional e lote vigente são lidos e congelados em `orders` pelo banco.
+- O frontend da inscrição envia somente o curso e dados pessoais; preço fixo/promocional e lote vigente são lidos e congelados em `orders` pelo banco.
 - A transação bloqueia curso/lote, valida matrícula, capacidade geral e capacidade do lote, e cria reserva por 30 minutos.
-- Um checkout `WAITING_PAYMENT` ainda válido é reutilizado. Reservas vencidas são expiradas e liberadas.
-- Callback apenas consulta o pedido. Somente webhook autenticado confirma pagamento e ativa matrícula.
-- O ID do pedido é `externalReference`. Eventos de Checkout sem essa propriedade são conciliados por `checkout.id`.
+- Um pedido `WAITING_PAYMENT` ainda válido é reutilizado. Reservas vencidas são expiradas e liberadas.
+- Pix soma sua tarifa configurada e R$ 5,00. Cartão soma a tarifa à vista ou de 2–6 parcelas e R$ 5,00; todos os valores são recalculados no servidor.
+- O ID do pedido é `externalReference`. Somente webhook autenticado, com ID e valor conferidos contra o pedido, confirma pagamento e ativa matrícula.
 - Webhooks são deduplicados por `(provider, external_event_id)` e hash do payload. Matrícula, reserva, credencial e attendance têm efeitos idempotentes.
 - Curso presencial pago recebe token opaco aleatório. Só o hash é usado na validação; o QR não contém nome, email, IDs ou dados financeiros.
 - Check-in exige ADMIN ou o INSTRUCTOR vinculado ao curso, usa lock, registra `PRESENT` e preserva data/hora do primeiro uso.
