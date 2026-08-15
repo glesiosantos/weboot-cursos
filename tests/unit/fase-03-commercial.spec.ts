@@ -8,6 +8,7 @@ const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
 const completion = readFileSync('server/services/complete-order.service.ts', 'utf8')
 const checkin = readFileSync('server/api/admin/events/[courseId]/checkin.post.ts', 'utf8')
 const checkoutFunctionFix = readFileSync('supabase/migrations/20260813000200_fix_checkout_function_ambiguity.sql', 'utf8')
+const paymentConfirmationFix = readFileSync('supabase/migrations/20260815000400_fix_payment_confirmation_enrollment_ambiguity.sql', 'utf8')
 
 describe('Fase 03 commercial contract', () => {
   it('takes fixed and batch prices only inside the database transaction', () => {
@@ -37,6 +38,11 @@ describe('Fase 03 commercial contract', () => {
     expect(checkoutFunctionFix).toContain('prepare_checkout_order(uuid,uuid,integer)')
     expect(checkoutFunctionFix).toContain('prepare_guest_checkout_order(uuid,text,text,text,text,text,text,text,boolean,integer)')
     expect(checkoutFunctionFix).toContain('#variable_conflict use_column')
+  })
+
+  it('resolves enrollment id ambiguity while confirming a payment', () => {
+    expect(paymentConfirmationFix).toContain('confirm_commercial_payment(uuid,text,text,text,text)')
+    expect(paymentConfirmationFix).toContain('#variable_conflict use_column')
   })
 
   it('uses only transparent Asaas Sandbox payment', () => {

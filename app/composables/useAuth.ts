@@ -54,7 +54,9 @@ export const useAuth = () => {
 
   const reauthenticate = async () => await client.auth.reauthenticate()
 
+  const refreshSession = async () => await client.auth.refreshSession()
+
   const signOut = async () => await client.auth.signOut()
 
-  return { signIn, signUp, resetPassword, updatePassword, reauthenticate, signOut }
+  return { signIn, signUp, resetPassword, updatePassword, reauthenticate, refreshSession, signOut }
 }

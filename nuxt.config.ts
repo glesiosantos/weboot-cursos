@@ -26,7 +26,12 @@ export default defineNuxtConfig({
     '/conta/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },
   },
   compatibilityDate: '2025-07-15',
-  vite: { plugins: [tailwindcss()] },
+  vite: {
+    plugins: [tailwindcss()],
+    server: {
+      allowedHosts: ['virulent-rodney-aghastly.ngrok-free.dev'],
+    },
+  },
   typescript: { strict: true },
   eslint: { config: { stylistic: { semi: false, quotes: 'single' } } },
   supabase: {

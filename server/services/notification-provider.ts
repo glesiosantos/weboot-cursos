@@ -10,6 +10,7 @@ export type EnrollmentNotification = {
   location?: string | null
   credentialUrl?: string | null
   passwordSetupUrl?: string | null
+  initialPassword?: string
 }
 
 export interface NotificationProvider {
@@ -27,7 +28,8 @@ export class WebhookNotificationProvider implements NotificationProvider {
       method: 'POST', headers: this.token ? { authorization: `Bearer ${this.token}` } : undefined,
       body: { type, channel: input.channel, destination: input.destination, participantName: input.participantName,
         courseTitle: input.courseTitle, startsAt: input.startsAt, location: input.location,
-        credentialUrl: input.credentialUrl, passwordSetupUrl: input.passwordSetupUrl },
+        credentialUrl: input.credentialUrl, passwordSetupUrl: input.passwordSetupUrl,
+        initialPassword: input.initialPassword },
     })
     return { id: result.id }
   }

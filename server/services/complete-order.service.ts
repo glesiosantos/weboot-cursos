@@ -10,6 +10,7 @@ export const completeCommercialOrder = async (admin: AdminClient, orderId: strin
   if (orderError || !order) { throw orderError ?? new Error('Pedido não encontrado') }
   if (order.status === 'PAID') { return { duplicate: true } }
   let passwordSetupSent = false
+  let initialPassword: string | undefined
   let associatedUserId = order.user_id as string | null
   if (!order.user_id && order.registration_id) {
     const { data: registration, error } = await admin.from('registration_contacts')
@@ -18,6 +19,7 @@ export const completeCommercialOrder = async (admin: AdminClient, orderId: strin
     const account = await ensureStudentAccount(admin, registration)
     associatedUserId = account.userId
     passwordSetupSent = account.passwordSetupSent
+    initialPassword = account.initialPassword
     const { error: associateError } = await admin.rpc('associate_guest_order', { target_order_id: orderId, target_user_id: account.userId })
     if (associateError) { throw associateError }
   }
@@ -32,6 +34,30 @@ export const completeCommercialOrder = async (admin: AdminClient, orderId: strin
     if (registration) {
       const provider = new WebhookNotificationProvider(notificationConfig.url, notificationConfig.token)
       const details = Array.isArray(order.courses?.course_presential_details) ? order.courses.course_presential_details[0] : order.courses?.course_presential_details
+      if (initialPassword) {
+        try {
+          let sent: { id?: string, skipped?: boolean }
+          if (notificationConfig.url) {
+            sent = await provider.sendPasswordSetup({ userId: associatedUserId!, registrationId: order.registration_id, channel: 'EMAIL',
+              destination: registration.email, participantName: registration.full_name, courseTitle: order.courses?.title ?? 'Curso',
+              passwordSetupUrl: `${notificationConfig.appUrl}/login`, initialPassword })
+          }
+          else {
+            const { error: recoveryError } = await admin.auth.resetPasswordForEmail(registration.email, {
+              redirectTo: `${notificationConfig.appUrl}/redefinir-senha`,
+            })
+            if (recoveryError) { throw recoveryError }
+            sent = { id: 'supabase-auth' }
+          }
+          await admin.from('notification_logs').insert({ user_id: associatedUserId, registration_id: order.registration_id, channel: 'EMAIL',
+            type: 'PASSWORD_SETUP', destination_masked: maskDestination('EMAIL', registration.email), status: sent.skipped ? 'SKIPPED' : 'SENT',
+            external_id: sent.id, sent_at: sent.skipped ? null : new Date().toISOString() })
+        }
+        catch {
+          await admin.from('notification_logs').insert({ user_id: associatedUserId, registration_id: order.registration_id, channel: 'EMAIL',
+            type: 'PASSWORD_SETUP', destination_masked: maskDestination('EMAIL', registration.email), status: 'FAILED' })
+        }
+      }
       for (const channel of ['EMAIL', 'WHATSAPP'] as const) {
         const destination = channel === 'EMAIL' ? registration.email : registration.whatsapp
         try {

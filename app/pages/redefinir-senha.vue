@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const client = useSupabaseClient()
 const status = ref<'processing' | 'ready' | 'invalid'>('invalid')
+const initialAccess = ref(false)
 let recoveryEventReceived = false
 
 const clearAuthFragment = () => {
@@ -12,6 +13,7 @@ const clearAuthFragment = () => {
 const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     recoveryEventReceived = true
+    initialAccess.value = session?.user.app_metadata?.must_change_password === true
     status.value = session ? 'ready' : 'invalid'
   }
 })
@@ -59,6 +61,7 @@ useSeoMeta({ title: 'Redefinir senha | WeBoot Cursos', robots: 'noindex, nofollo
       v-else-if="status === 'ready'"
       class="mt-8"
       recovery
+      :initial-access="initialAccess"
     />
 
     <div

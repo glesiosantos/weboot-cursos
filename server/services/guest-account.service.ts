@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 // Supabase service-role client includes Auth Admin methods not represented by generated database types.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AdminClient = any
@@ -14,9 +16,15 @@ export const ensureStudentAccount = async (admin: AdminClient, registration: { f
   } while (page <= 10)
 
   let passwordSetupSent = false
+  let initialPassword: string | undefined
   if (!user) {
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(registration.email, {
-      data: { name: registration.full_name, role: 'STUDENT' },
+    initialPassword = randomBytes(18).toString('base64url')
+    const { data, error } = await admin.auth.admin.createUser({
+      email: registration.email,
+      password: initialPassword,
+      email_confirm: true,
+      user_metadata: { name: registration.full_name },
+      app_metadata: { role: 'STUDENT', must_change_password: true },
     })
     if (error || !data.user) { throw error ?? new Error('Não foi possível iniciar a criação da conta') }
     user = data.user
@@ -31,5 +39,5 @@ export const ensureStudentAccount = async (admin: AdminClient, registration: { f
     name: registration.full_name, phone: registration.whatsapp,
   }).eq('id', user.id)
   if (profileError) { throw profileError }
-  return { userId: user.id, passwordSetupSent }
+  return { userId: user.id, passwordSetupSent, initialPassword }
 }

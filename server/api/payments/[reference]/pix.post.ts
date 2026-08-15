@@ -3,7 +3,6 @@ import { ensureAsaasCustomer, loadPaymentContext } from '../../../utils/payment'
 import { paymentPrice } from '../../../utils/payment-pricing'
 
 export default defineEventHandler(async (event) => {
-  enforceRegistrationRateLimit(event, 5, 10 * 60_000)
   const context = await loadPaymentContext(event)
   if (context.order.status === 'PAID') { return { paid: true } }
   if (context.order.asaas_payment_id) {
@@ -12,6 +11,7 @@ export default defineEventHandler(async (event) => {
     const qrCode = await provider.getPixQrCode(context.order.asaas_payment_id)
     return { payment_id: context.order.asaas_payment_id, ...qrCode }
   }
+  enforceRegistrationRateLimit(event, 5, 10 * 60_000)
   const config = useRuntimeConfig(event)
   const price = paymentPrice(Number(context.order.unit_price), 'PIX', 1, config)
   const { provider, customerId } = await ensureAsaasCustomer(event, context)

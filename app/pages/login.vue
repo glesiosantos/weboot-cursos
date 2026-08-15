@@ -38,6 +38,11 @@ const submit = async () => {
       throw profileError ?? new Error('PROFILE_NOT_FOUND')
     }
 
+    if (authData.user.app_metadata.must_change_password === true) {
+      await navigateTo('/primeiro-acesso')
+      return
+    }
+
     const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('//')
       ? route.query.redirect
       : getAuthenticatedHome(profile.role)
