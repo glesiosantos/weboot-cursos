@@ -126,16 +126,7 @@ const copyPix = async () => { if (pix.value?.payload) { await navigator.clipboar
           </label>
         </template>
         <dl class="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
-          <div class="flex justify-between">
-            <dt>Curso</dt><dd>{{ currency(selectedPrice.base) }}</dd>
-          </div>
-          <div class="flex justify-between">
-            <dt>Tarifa de pagamento</dt><dd>{{ currency(selectedPrice.providerFee) }}</dd>
-          </div>
-          <div class="flex justify-between">
-            <dt>Taxa de serviço</dt><dd>{{ currency(selectedPrice.serviceFee) }}</dd>
-          </div>
-          <div class="flex justify-between border-t pt-2 text-base font-black">
+          <div class="flex justify-between text-base font-black">
             <dt>Total</dt><dd>{{ currency(selectedPrice.total) }}</dd>
           </div>
         </dl>

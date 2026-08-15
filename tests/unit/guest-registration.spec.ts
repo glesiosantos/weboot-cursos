@@ -4,14 +4,14 @@ import { guestRegistrationSchema, isValidCpf, normalizeWhatsapp } from '../../se
 
 const migration = readFileSync('supabase/migrations/20260813000100_guest_registration.sql', 'utf8')
 const identityMigration = readFileSync('supabase/migrations/20260815000100_unique_registration_identity_and_transparent_payment.sql', 'utf8')
+const pendingOrderFix = readFileSync('supabase/migrations/20260815000200_reuse_legacy_pending_guest_orders.sql', 'utf8')
+const duplicateIdentityFix = readFileSync('supabase/migrations/20260815000300_reject_duplicate_registration_identity.sql', 'utf8')
 const endpoint = readFileSync('server/api/registrations/index.post.ts', 'utf8')
 const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
 
 const valid = {
   course_id: 'a174f612-35c6-45c0-bf07-a0047bb6fdd3', full_name: 'Maria da Silva', cpf: '529.982.247-25',
-  whatsapp: '(86) 99999-9999', email: 'maria@example.com', postal_code: '64000-100', address: 'Rua das Flores',
-  address_number: '123', complement: '', province: 'Centro', city: 'Teresina', city_ibge: '2211001',
-  terms_accepted: true, marketing_accepted: false,
+  whatsapp: '(86) 99999-9999', email: 'maria@example.com', terms_accepted: true, marketing_accepted: false,
 }
 
 describe('guest registration', () => {
@@ -47,10 +47,9 @@ describe('guest registration', () => {
     expect(migration).toContain('raise exception \'course batch sold out\'')
   })
 
-  it('stores the validated payer address for transparent payment', () => {
-    expect(endpoint).toContain('admin.from(\'registration_contacts\').update({')
-    expect(endpoint).toContain('address: parsed.data.address')
-    expect(endpoint).toContain('city_ibge: parsed.data.city_ibge')
+  it('collects only the required identity and contact data', () => {
+    expect(guestRegistrationSchema.safeParse(valid).success).toBe(true)
+    expect(endpoint).not.toMatch(/postal_code|address_number|city_ibge/)
   })
 
   it('keeps a single contact per CPF and reuses it for multiple orders', () => {
@@ -62,6 +61,19 @@ describe('guest registration', () => {
     expect(identityMigration).toContain('orders_public_reference_hash_key')
     expect(endpoint).toContain('`/pagamento/${encodeURIComponent(reference)}`')
     expect(endpoint).not.toContain('AsaasHostedCheckoutProvider')
+  })
+
+  it('reuses or expires pending orders left by the legacy checkout', () => {
+    expect(pendingOrderFix).toContain('status in (\'\'PENDING\'\', \'\'WAITING_PAYMENT\'\')')
+    expect(pendingOrderFix).toContain('expires_at <= now()')
+    expect(pendingOrderFix).toContain('expires_at > now()')
+  })
+
+  it('rejects an existing CPF or normalized email with database constraints', () => {
+    expect(identityMigration).toContain('unique index registration_contacts_cpf_hash_key')
+    expect(duplicateIdentityFix).toContain('unique index registration_contacts_email_key')
+    expect(duplicateIdentityFix).toContain('raise exception \'cpf already registered\'')
+    expect(duplicateIdentityFix).toContain('raise exception \'email already registered\'')
   })
 
   it('does not require an email confirmation field', () => {

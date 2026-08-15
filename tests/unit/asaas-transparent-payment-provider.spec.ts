@@ -28,7 +28,7 @@ describe('AsaasTransparentPaymentProvider', () => {
       customer: 'cus_1', value: 108.98, dueDate: '2026-08-15', description: 'Curso', externalReference: 'order-1',
       installmentCount: 6, remoteIp: '203.0.113.10',
       creditCard: { holderName: 'Maria Silva', number: '4111111111111111', expiryMonth: '12', expiryYear: '2030', ccv: '123' },
-      creditCardHolderInfo: { name: 'Maria Silva', email: 'maria@example.com', cpfCnpj: '52998224725', postalCode: '64000100', addressNumber: '123', phone: '5586999999999', mobilePhone: '5586999999999' },
+      creditCardHolderInfo: { name: 'Maria Silva', email: 'maria@example.com', cpfCnpj: '52998224725', phone: '5586999999999', mobilePhone: '5586999999999' },
     })
 
     const body = JSON.parse(fetchMock.mock.calls[0]![1].body)

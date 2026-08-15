@@ -6,7 +6,7 @@ O Nuxt cria o pedido e a reserva no banco e abre o checkout transparente em `/pa
 
 ### Inscrição pública sem login
 
-`/cursos/[slug]/inscricao` cria ou atualiza um único `registration_contacts` por CPF, cria `orders` e, quando houver limite de vagas, `seat_reservations`. O banco usa lock transacional e índice único em `cpf_hash`, evitando duplicidade inclusive em requisições simultâneas. Uma pessoa pode possuir vários pedidos; cada referência pública pertence ao pedido. Nenhum usuário Auth é criado antes da confirmação. CPF é normalizado no servidor, cifrado com `NUXT_REGISTRATION_DATA_KEY` e indexado somente por hash com chave; nunca integra URLs, QR Codes, logs ou respostas públicas.
+`/cursos/[slug]/inscricao` coleta somente nome completo, CPF, WhatsApp e e-mail, cria ou atualiza um único `registration_contacts` por CPF, cria `orders` e, quando houver limite de vagas, `seat_reservations`. O banco usa lock transacional e índice único em `cpf_hash`, evitando duplicidade inclusive em requisições simultâneas. Uma pessoa pode possuir vários pedidos; cada referência pública pertence ao pedido. Nenhum usuário Auth é criado antes da confirmação. CPF é normalizado no servidor, cifrado com `NUXT_REGISTRATION_DATA_KEY` e indexado somente por hash com chave; nunca integra URLs, QR Codes, logs ou respostas públicas.
 
 O modelo atual usa `course_batches` como oferta comercial/turma e `course_presential_details` para data e local. Não foi criada uma `course_offerings` paralela para evitar duas fontes de preço, vagas e período. A matrícula registra `course_batch_id`, permitindo evolução posterior sem perder a turma comprada.
 
@@ -18,7 +18,7 @@ Permanecem futuras: múltiplos participantes, inscrição corporativa, transfer�
 
 ## Configuração
 
-Configure somente no servidor `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_WEBHOOK_TOKEN` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Nesta fase, `NUXT_ASAAS_API_URL` deve continuar `https://api-sandbox.asaas.com/v3`. Configure as tarifas reais da conta em `NUXT_ASAAS_PIX_PERCENT`, `NUXT_ASAAS_PIX_FIXED`, `NUXT_ASAAS_CARD_CASH_PERCENT`, `NUXT_ASAAS_CARD_INSTALLMENT_PERCENT` e `NUXT_ASAAS_CARD_FIXED`. `NUXT_PAYMENT_SERVICE_FEE` tem padrão de R$ 5,00.
+Configure somente no servidor `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_WEBHOOK_TOKEN` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Nesta fase, `NUXT_ASAAS_API_URL` deve continuar `https://api-sandbox.asaas.com/v3`. Pix e cartão à vista usam o valor do curso/lote. Para cartão de 2 a 6 parcelas, configure `NUXT_ASAAS_CARD_INSTALLMENT_PERCENT=2.49` e `NUXT_ASAAS_CARD_FIXED=5.49`.
 
 No Sandbox, cadastre `https://SEU_DOMINIO/api/webhooks/asaas`, o mesmo token seguro (32–255 caracteres) e apenas os eventos necessários: `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_REFUNDED`, `PAYMENT_DELETED` e `PAYMENT_OVERDUE`. Em desenvolvimento, exponha a aplicação com um túnel HTTPS como ngrok; nunca grave a URL temporária no código.
 
@@ -27,7 +27,7 @@ No Sandbox, cadastre `https://SEU_DOMINIO/api/webhooks/asaas`, o mesmo token seg
 - O frontend da inscrição envia somente o curso e dados pessoais; preço fixo/promocional e lote vigente são lidos e congelados em `orders` pelo banco.
 - A transação bloqueia curso/lote, valida matrícula, capacidade geral e capacidade do lote, e cria reserva por 30 minutos.
 - Um pedido `WAITING_PAYMENT` ainda válido é reutilizado. Reservas vencidas são expiradas e liberadas.
-- Pix soma sua tarifa configurada e R$ 5,00. Cartão soma a tarifa à vista ou de 2–6 parcelas e R$ 5,00; todos os valores são recalculados no servidor.
+- Pix e cartão à vista cobram o preço congelado do curso/lote. Cartão de 2 a 6 parcelas soma R$ 5,49 e 2,49%; o frontend exibe somente o total, sem discriminar tarifas.
 - O ID do pedido é `externalReference`. Somente webhook autenticado, com ID e valor conferidos contra o pedido, confirma pagamento e ativa matrícula.
 - Webhooks são deduplicados por `(provider, external_event_id)` e hash do payload. Matrícula, reserva, credencial e attendance têm efeitos idempotentes.
 - Curso presencial pago recebe token opaco aleatório. Só o hash é usado na validação; o QR não contém nome, email, IDs ou dados financeiros.

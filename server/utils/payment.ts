@@ -27,9 +27,7 @@ export const ensureAsaasCustomer = async (event: H3Event, context: Awaited<Retur
   const cpf = revealRegistrationCpf(context.contact.cpf_encrypted, String(config.registrationDataKey || ''))
   const customerId = await provider.createCustomer({
     name: context.contact.full_name, cpfCnpj: cpf, email: context.contact.email,
-    mobilePhone: context.contact.whatsapp.replace(/\D/g, ''), address: context.contact.address,
-    addressNumber: context.contact.address_number, complement: context.contact.complement || undefined,
-    province: context.contact.province, postalCode: context.contact.postal_code,
+    mobilePhone: context.contact.whatsapp.replace(/\D/g, ''),
     externalReference: context.contact.id,
   })
   const { error } = await context.admin.from('registration_contacts').update({ asaas_customer_id: customerId }).eq('id', context.contact.id)

@@ -40,8 +40,6 @@ export default defineEventHandler(async (event) => {
     creditCardHolderInfo: {
       name: parsed.data.holder_name, email: context.contact.email,
       cpfCnpj: revealRegistrationCpf(cpf, String(config.registrationDataKey || '')),
-      postalCode: context.contact.postal_code, addressNumber: context.contact.address_number,
-      addressComplement: context.contact.complement || undefined,
       phone: context.contact.whatsapp.replace(/\D/g, ''), mobilePhone: context.contact.whatsapp.replace(/\D/g, ''),
     },
     remoteIp: getRequestIP(event, { xForwardedFor: true }) || '127.0.0.1',

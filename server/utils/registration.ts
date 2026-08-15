@@ -29,13 +29,6 @@ export const guestRegistrationSchema = z.object({
   cpf: z.string().refine(isValidCpf, 'CPF inválido').transform(digits),
   whatsapp: z.string().transform(normalizeWhatsapp).refine(value => value !== null, 'WhatsApp inválido'),
   email: z.email('Email inválido').transform(value => value.trim().toLowerCase()),
-  postal_code: z.string().transform(digits).refine(value => value.length === 8, 'CEP inválido'),
-  address: z.string().trim().min(3, 'Endereço inválido').max(255, 'Endereço muito longo'),
-  address_number: z.string().trim().min(1, 'Informe o número do endereço').max(20, 'Número do endereço muito longo'),
-  complement: z.string().trim().max(255, 'Complemento muito longo').default(''),
-  province: z.string().trim().min(2, 'Bairro inválido').max(100, 'Bairro muito longo'),
-  city: z.string().trim().min(2, 'Cidade inválida').max(100, 'Cidade muito longa'),
-  city_ibge: z.string().regex(/^\d{7}$/, 'Consulte um CEP válido').transform(Number),
   terms_accepted: z.literal(true, 'Aceite os Termos de Uso e a Política de Privacidade'),
   marketing_accepted: z.boolean().default(false),
 }).strict()

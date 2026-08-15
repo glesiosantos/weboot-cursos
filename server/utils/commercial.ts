@@ -7,6 +7,12 @@ export const createCredential = () => {
 }
 
 export const normalizeCommercialError = (message: string) => {
+  if (message.includes('cpf already registered') || message.includes('registration_contacts_cpf_hash_key')) {
+    return createError({ statusCode: 409, statusMessage: 'CPF já registrado.' })
+  }
+  if (message.includes('email already registered') || message.includes('registration_contacts_email_key')) {
+    return createError({ statusCode: 409, statusMessage: 'E-mail já registrado.' })
+  }
   if (message.includes('course already acquired')) { return createError({ statusCode: 409, statusMessage: 'Você já possui acesso a este curso.' }) }
   if (message.includes('sold out')) { return createError({ statusCode: 409, statusMessage: 'Não há vagas disponíveis.' }) }
   if (message.includes('no current course batch')) { return createError({ statusCode: 409, statusMessage: 'Não há lote vigente para este curso.' }) }

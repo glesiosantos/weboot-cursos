@@ -31,16 +31,6 @@ export default defineEventHandler(async (event) => {
   })
   if (error || !data?.[0]) { throw normalizeCommercialError(error?.message ?? 'order preparation failed') }
   const order = data[0]
-  const { error: contactError } = await admin.from('registration_contacts').update({
-    postal_code: parsed.data.postal_code,
-    address: parsed.data.address,
-    address_number: parsed.data.address_number,
-    complement: parsed.data.complement,
-    province: parsed.data.province,
-    city: parsed.data.city,
-    city_ibge: parsed.data.city_ibge,
-  }).eq('id', order.registration_id)
-  if (contactError) { throw contactError }
   const { error: referenceError } = await admin.from('orders').update({ public_reference_hash: sha256(reference) }).eq('id', order.order_id)
   if (referenceError) { throw referenceError }
   if (Number(order.unit_price) === 0) {

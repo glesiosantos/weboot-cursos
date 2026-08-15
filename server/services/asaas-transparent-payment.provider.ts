@@ -8,11 +8,6 @@ export type CustomerInput = {
   cpfCnpj: string
   email: string
   mobilePhone: string
-  address: string
-  addressNumber: string
-  complement?: string
-  province: string
-  postalCode: string
   externalReference: string
 }
 export type CardInput = {
@@ -26,9 +21,6 @@ export type HolderInput = {
   name: string
   email: string
   cpfCnpj: string
-  postalCode: string
-  addressNumber: string
-  addressComplement?: string
   phone: string
   mobilePhone: string
 }

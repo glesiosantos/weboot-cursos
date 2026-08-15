@@ -31,13 +31,6 @@ create index orders_registration_idx on public.orders(registration_id);
 create unique index orders_public_reference_hash_key on public.orders(public_reference_hash) where public_reference_hash is not null;
 
 alter table public.registration_contacts
-  add column if not exists postal_code text,
-  add column if not exists address text,
-  add column if not exists address_number text,
-  add column if not exists complement text,
-  add column if not exists province text,
-  add column if not exists city text,
-  add column if not exists city_ibge integer,
   add column if not exists asaas_customer_id text unique;
 
 alter table public.orders

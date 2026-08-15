@@ -10,9 +10,10 @@ export type PaymentFeeConfig = {
 }
 
 export const paymentPrice = (base: number, method: 'PIX' | 'CREDIT_CARD', installments: number, config: PaymentFeeConfig) => {
-  const percent = method === 'PIX' ? Number(config.asaasPixPercent) : Number(installments === 1 ? config.asaasCardCashPercent : config.asaasCardInstallmentPercent)
-  const fixed = method === 'PIX' ? Number(config.asaasPixFixed) : Number(config.asaasCardFixed)
-  const serviceFee = money(Number(config.paymentServiceFee))
+  const hasInstallmentFee = method === 'CREDIT_CARD' && installments >= 2
+  const percent = hasInstallmentFee ? Number(config.asaasCardInstallmentPercent) : 0
+  const fixed = hasInstallmentFee ? Number(config.asaasCardFixed) : 0
+  const serviceFee = 0
   const providerFee = money(base * percent / 100 + fixed)
   return { base: money(base), providerFee, serviceFee, total: money(base + providerFee + serviceFee), percent, installments }
 }
