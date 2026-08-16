@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
+import { buildEmailContent } from '../../server/services/notification-provider'
 
 const accountService = readFileSync('server/services/guest-account.service.ts', 'utf8')
 const completionService = readFileSync('server/services/complete-order.service.ts', 'utf8')
@@ -22,6 +23,18 @@ describe('student first access', () => {
     expect(completionService).toContain('admin.auth.resetPasswordForEmail')
     expect(completionService).toContain('redirectTo: `${notificationConfig.appUrl}/redefinir-senha`')
     expect(completionService).toContain('type: \'PASSWORD_SETUP\'')
+  })
+
+  it('emails the login, temporary password and mandatory first-access instruction', () => {
+    const content = buildEmailContent('PASSWORD_SETUP', {
+      userId: 'student-id', channel: 'EMAIL', destination: 'aluno@example.test', participantName: 'Aluno',
+      courseTitle: 'Curso Teste', passwordSetupUrl: 'https://cursos.example/login', initialPassword: 'temporaria-segura',
+    })
+
+    expect(content.subject).toContain('Seu acesso inicial')
+    expect(content.html).toContain('Login: <strong>aluno@example.test</strong>')
+    expect(content.html).toContain('Senha temporária: <strong>temporaria-segura</strong>')
+    expect(content.html).toContain('No primeiro acesso, você deverá criar uma nova senha')
   })
 
   it('forces password replacement before the student panel is opened', () => {

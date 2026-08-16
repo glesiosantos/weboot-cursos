@@ -4,10 +4,11 @@ const status = ref<'processing' | 'ready' | 'invalid'>('invalid')
 const initialAccess = ref(false)
 let recoveryEventReceived = false
 
-const clearAuthFragment = () => {
-  if (window.location.hash) {
-    window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`)
-  }
+const clearAuthPayload = () => {
+  const url = new URL(window.location.href)
+  url.hash = ''
+  url.searchParams.delete('code')
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`)
 }
 
 const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
@@ -19,19 +20,21 @@ const { data: authListener } = client.auth.onAuthStateChange((event, session) =>
 })
 
 onMounted(async () => {
-  const hasRecoveryPayload = Boolean(window.location.hash || new URLSearchParams(window.location.search).get('code'))
-  if (!hasRecoveryPayload) {
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const hasRecoveryPayload = hashParams.get('type') === 'recovery' || Boolean(new URLSearchParams(window.location.search).get('code'))
+  const hasAuthError = hashParams.has('error')
+  if (!hasRecoveryPayload && !hasAuthError) {
     return
   }
   status.value = 'processing'
   const { data, error } = await client.auth.getSession()
 
-  // PASSWORD_RECOVERY is queued by the SDK after it has consumed the URL.
+  // O SDK pode consumir o link e criar a sessão antes de este listener ser registrado.
   window.setTimeout(() => {
     if (status.value === 'processing') {
-      status.value = !error && data.session && recoveryEventReceived ? 'ready' : 'invalid'
+      status.value = !error && data.session && (hasRecoveryPayload || recoveryEventReceived) ? 'ready' : 'invalid'
     }
-    clearAuthFragment()
+    clearAuthPayload()
   }, 0)
 })
 

@@ -6,6 +6,22 @@ export const createCredential = () => {
   return { token, code: token }
 }
 
+export const normalizeCredentialToken = (value: string) => {
+  const trimmed = value.trim()
+  let token = trimmed
+  try {
+    const url = new URL(trimmed)
+    const match = url.pathname.match(/\/checkin\/([^/]+)/)
+    if (match?.[1]) { token = decodeURIComponent(match[1]) }
+  }
+  catch {
+    const match = trimmed.match(/(?:^|\/)checkin\/([^/?#]+)/i)
+    if (match?.[1]) { token = decodeURIComponent(match[1]) }
+  }
+  const normalized = token.trim().toUpperCase()
+  return /^[A-F0-9]{32}$/.test(normalized) ? normalized : null
+}
+
 export const normalizeCommercialError = (message: string) => {
   if (message.includes('cpf already registered') || message.includes('registration_contacts_cpf_hash_key')) {
     return createError({ statusCode: 409, statusMessage: 'CPF já registrado.' })

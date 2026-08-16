@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { serverSupabaseServiceRole } from '#supabase/server'
 import { requireCourseManager } from '../../../../../../utils/auth'
-import { maskDestination, WebhookNotificationProvider } from '../../../../../../services/notification-provider'
+import { maskDestination, RoutedNotificationProvider } from '../../../../../../services/notification-provider'
 
 const schema = z.object({ type: z.enum(['ENROLLMENT_CONFIRMATION', 'EVENT_CREDENTIAL']) }).strict()
 
@@ -21,7 +21,10 @@ export default defineEventHandler(async (event) => {
   const { data: registration } = await admin.from('registration_contacts').select('email,whatsapp').eq('id', registrationId).single()
   if (!registration) { throw createError({ statusCode: 404, statusMessage: 'Contato não encontrado' }) }
   const config = useRuntimeConfig(event)
-  const provider = new WebhookNotificationProvider(String(config.notificationWebhookUrl || ''), String(config.notificationWebhookToken || ''))
+  const provider = new RoutedNotificationProvider(String(config.notificationWebhookUrl || ''), String(config.notificationWebhookToken || ''), {
+    host: String(config.smtpHost || ''), port: Number(config.smtpPort || 587), secure: Boolean(config.smtpSecure),
+    user: String(config.smtpUser || ''), password: String(config.smtpPassword || ''), from: String(config.smtpFrom || ''),
+  })
   const details = Array.isArray(data.courses?.course_presential_details) ? data.courses.course_presential_details[0] : data.courses?.course_presential_details
   for (const channel of ['EMAIL', 'WHATSAPP'] as const) {
     const destination = channel === 'EMAIL' ? registration.email : registration.whatsapp

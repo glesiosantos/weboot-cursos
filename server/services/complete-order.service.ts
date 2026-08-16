@@ -1,11 +1,11 @@
 import { createCredential, sha256 } from '../utils/commercial'
 import { ensureStudentAccount } from './guest-account.service'
-import { maskDestination, WebhookNotificationProvider } from './notification-provider'
+import { maskDestination, RoutedNotificationProvider, type SmtpConfig } from './notification-provider'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AdminClient = any
 
-export const completeCommercialOrder = async (admin: AdminClient, orderId: string, externalPaymentId: string, paymentStatus: string, notificationConfig?: { url: string, token: string, appUrl: string }) => {
+export const completeCommercialOrder = async (admin: AdminClient, orderId: string, externalPaymentId: string, paymentStatus: string, notificationConfig?: { url: string, token: string, appUrl: string, smtp?: SmtpConfig }) => {
   const { data: order, error: orderError } = await admin.from('orders').select('id,user_id,registration_id,status,course_id,courses(title,course_presential_details(starts_at,location_name))').eq('id', orderId).single()
   if (orderError || !order) { throw orderError ?? new Error('Pedido não encontrado') }
   if (order.status === 'PAID') { return { duplicate: true } }
@@ -32,12 +32,12 @@ export const completeCommercialOrder = async (admin: AdminClient, orderId: strin
   if (order.registration_id && notificationConfig) {
     const { data: registration } = await admin.from('registration_contacts').select('full_name,email,whatsapp').eq('id', order.registration_id).single()
     if (registration) {
-      const provider = new WebhookNotificationProvider(notificationConfig.url, notificationConfig.token)
+      const provider = new RoutedNotificationProvider(notificationConfig.url, notificationConfig.token, notificationConfig.smtp)
       const details = Array.isArray(order.courses?.course_presential_details) ? order.courses.course_presential_details[0] : order.courses?.course_presential_details
       if (initialPassword) {
         try {
           let sent: { id?: string, skipped?: boolean }
-          if (notificationConfig.url) {
+          if (notificationConfig.url || notificationConfig.smtp?.password) {
             sent = await provider.sendPasswordSetup({ userId: associatedUserId!, registrationId: order.registration_id, channel: 'EMAIL',
               destination: registration.email, participantName: registration.full_name, courseTitle: order.courses?.title ?? 'Curso',
               passwordSetupUrl: `${notificationConfig.appUrl}/login`, initialPassword })

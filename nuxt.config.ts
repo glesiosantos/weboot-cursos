@@ -18,6 +18,12 @@ export default defineNuxtConfig({
     registrationDataKey: '',
     notificationWebhookUrl: '',
     notificationWebhookToken: '',
+    smtpHost: '',
+    smtpPort: 587,
+    smtpSecure: false,
+    smtpUser: '',
+    smtpPassword: '',
+    smtpFrom: '',
     public: { appUrl: 'http://localhost:3000' },
   },
   routeRules: {

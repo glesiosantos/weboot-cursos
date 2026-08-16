@@ -12,7 +12,7 @@ O modelo atual usa `course_batches` como oferta comercial/turma e `course_presen
 
 Pagamento confirmado chama uma única rotina: associa conta existente por email ou envia convite seguro do Supabase para uma nova conta, força perfil `STUDENT`, ativa matrícula/reserva e cria a credencial. Curso gratuito passa pela mesma rotina sem chamar o Asaas. O retorno do navegador apenas consulta status.
 
-Notificações ficam atrás de `NotificationProvider`. Configure `NUXT_NOTIFICATION_WEBHOOK_URL` e, opcionalmente, `NUXT_NOTIFICATION_WEBHOOK_TOKEN`; sem provider, o evento é registrado como `SKIPPED`, sem simular entrega. WhatsApp não fica acoplado ao checkout. O comprovante PDF é gerado sob demanda em rota autenticada e usa cache privado desabilitado.
+Notificações ficam atrás de `NotificationProvider`. Emails usam SMTP quando `NUXT_SMTP_HOST`, `NUXT_SMTP_USER` e `NUXT_SMTP_PASSWORD` estão configurados; o remetente opcional é `NUXT_SMTP_FROM`. Configure `NUXT_NOTIFICATION_WEBHOOK_URL` e, opcionalmente, `NUXT_NOTIFICATION_WEBHOOK_TOKEN` para WhatsApp. Sem provider, o evento é registrado como `SKIPPED`, sem simular entrega. O comprovante PDF é gerado sob demanda em rota autenticada e usa cache privado desabilitado.
 
 Permanecem futuras: múltiplos participantes, inscrição corporativa, transferência de ingresso, lista de espera, scanner avançado por câmera, Apple/Google Wallet e link guest revogável para a credencial. Nesta entrega, a credencial fica em `/aluno/eventos` depois da criação segura da conta.
 

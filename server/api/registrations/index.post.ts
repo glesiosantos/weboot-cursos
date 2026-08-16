@@ -36,6 +36,7 @@ export default defineEventHandler(async (event) => {
   if (Number(order.unit_price) === 0) {
     await completeCommercialOrder(admin, order.order_id, `free:${order.order_id}`, 'FREE', {
       url: String(config.notificationWebhookUrl || ''), token: String(config.notificationWebhookToken || ''), appUrl: String(config.public.appUrl),
+      smtp: { host: String(config.smtpHost || ''), port: Number(config.smtpPort || 587), secure: Boolean(config.smtpSecure), user: String(config.smtpUser || ''), password: String(config.smtpPassword || ''), from: String(config.smtpFrom || '') },
     })
     return { checkout_url: `/inscricao/${encodeURIComponent(reference)}/confirmada`, free: true }
   }

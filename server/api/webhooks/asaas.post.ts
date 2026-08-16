@@ -55,6 +55,7 @@ export default defineEventHandler(async (event) => {
         }
         await completeCommercialOrder(admin, externalReference, paymentId, payload.payment?.status ?? payload.event, {
           url: String(config.notificationWebhookUrl || ''), token: String(config.notificationWebhookToken || ''), appUrl: String(config.public.appUrl),
+          smtp: { host: String(config.smtpHost || ''), port: Number(config.smtpPort || 587), secure: Boolean(config.smtpSecure), user: String(config.smtpUser || ''), password: String(config.smtpPassword || ''), from: String(config.smtpFrom || '') },
         })
       }
       else if (['PAYMENT_REFUNDED', 'PAYMENT_REFUND_IN_PROGRESS'].includes(payload.event)) {
