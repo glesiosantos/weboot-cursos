@@ -4,7 +4,7 @@ const logout = async () => {
   await client.auth.signOut()
   await navigateTo('/login')
 }
-const links = [{ l: 'Visão geral', to: '/aluno' }, { l: 'Meus cursos', to: '/aluno/cursos' }, { l: 'Certificados', to: '/aluno/certificados' }, { l: 'Pedidos', to: '/aluno/pedidos' }, { l: 'Perfil', to: '/aluno/perfil' }]
+const links = [{ l: 'Visão geral', to: '/aluno' }, { l: 'Meus cursos', to: '/aluno/cursos' }, { l: 'Catálogo', to: '/aluno/catalogo' }, { l: 'Eventos', to: '/aluno/eventos' }, { l: 'Certificados', to: '/aluno/certificados' }, { l: 'Pedidos', to: '/aluno/pedidos' }, { l: 'Perfil', to: '/aluno/perfil' }, { l: 'Segurança', to: '/conta/seguranca' }]
 </script>
 
 <template>

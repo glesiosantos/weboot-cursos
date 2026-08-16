@@ -38,7 +38,7 @@ describe('password recovery', () => {
     expect(getPasswordRecoveryRedirect('https://cursos.example/')).toBe('https://cursos.example/redefinir-senha')
   })
 
-  it('shows the form only after a valid PASSWORD_RECOVERY event', async () => {
+  it('shows the form after a valid PASSWORD_RECOVERY event', async () => {
     let authCallback: ((event: string, session: object | null) => void) | undefined
     onAuthStateChange.mockImplementation((callback) => {
       authCallback = callback
@@ -56,6 +56,21 @@ describe('password recovery', () => {
     expect(wrapper.text()).toContain('Recovery form')
   })
 
+  it('accepts a recovery session consumed before the page listener was registered', async () => {
+    onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe } } })
+    getSession.mockResolvedValue({ data: { session: { user: { id: 'recovered-session' } } }, error: null })
+    window.history.replaceState({}, '', '/redefinir-senha#access_token=secret&refresh_token=secret&type=recovery')
+
+    const wrapper = await mountSuspended(RecoveryPasswordPage, {
+      global: { stubs: { AccountChangePasswordForm: { template: '<form>Recovery form</form>' } } },
+    })
+    await new Promise(resolve => window.setTimeout(resolve, 0))
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Recovery form')
+    expect(window.location.hash).toBe('')
+  })
+
   it('shows a safe error for an invalid or expired link and clears its fragment', async () => {
     onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe } } })
     getSession.mockResolvedValue({ data: { session: null }, error: new Error('invalid token details') })
@@ -68,6 +83,17 @@ describe('password recovery', () => {
     expect(wrapper.text()).toContain('Este link de recuperação expirou ou não é mais válido.')
     expect(wrapper.text()).not.toContain('invalid token details')
     expect(window.location.hash).toBe('')
+  })
+
+  it('rejects a direct recovery-page visit without waiting for Supabase', async () => {
+    onAuthStateChange.mockReturnValue({ data: { subscription: { unsubscribe } } })
+    window.history.replaceState({}, '', '/redefinir-senha')
+
+    const wrapper = await mountSuspended(RecoveryPasswordPage)
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Este link de recuperação expirou ou não é mais válido.')
+    expect(getSession).not.toHaveBeenCalled()
   })
 
   it('does not log authentication fragments', async () => {

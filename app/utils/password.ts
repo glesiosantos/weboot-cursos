@@ -3,7 +3,7 @@ import { z } from 'zod'
 export const changePasswordSchema = z.object({
   newPassword: z.string()
     .min(1, 'Informe a nova senha')
-    .min(8, 'A senha deve ter no mínimo 8 caracteres')
+    .min(6, 'A senha deve ter no mínimo 6 caracteres')
     .max(128, 'A senha deve ter no máximo 128 caracteres'),
   passwordConfirmation: z.string()
     .min(1, 'Confirme a nova senha')

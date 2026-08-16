@@ -34,10 +34,10 @@ describe('authenticated password change', () => {
     expect(wrapper.findAll('input').every(input => input.attributes('autocomplete') === 'new-password')).toBe(true)
   })
 
-  it('rejects a password shorter than eight characters', () => {
+  it('rejects a password shorter than six characters', () => {
     const result = changePasswordSchema.safeParse({ newPassword: 'curta', passwordConfirmation: 'curta' })
     expect(result.success).toBe(false)
-    expect(result.error?.issues.some(issue => issue.message.includes('mínimo 8'))).toBe(true)
+    expect(result.error?.issues.some(issue => issue.message.includes('mínimo 6'))).toBe(true)
   })
 
   it('rejects a different confirmation', () => {

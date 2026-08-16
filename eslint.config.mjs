@@ -6,5 +6,6 @@ export default withNuxt({
     'eqeqeq': ['error', 'always'],
     'no-console': ['error', { allow: ['warn', 'error'] }],
     '@typescript-eslint/no-explicit-any': 'error',
+    '@stylistic/max-statements-per-line': 'off',
   },
 })

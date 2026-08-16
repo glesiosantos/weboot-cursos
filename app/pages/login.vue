@@ -8,6 +8,8 @@ const loading = ref(false)
 const { signIn } = useAuth()
 const client = useSupabaseClient<Database>()
 const authFeedback = useState<string | undefined>('auth-feedback')
+const route = useRoute()
+const currentUser = useSupabaseUser()
 
 onBeforeUnmount(() => {
   authFeedback.value = undefined
@@ -19,16 +21,35 @@ const submit = async () => {
   try {
     const { data: authData, error } = await signIn({ email: email.value, password: password.value })
     if (error) {
+      if (error.code === 'email_not_confirmed') {
+        errorMessage.value = 'Confirme seu email antes de entrar.'
+        return
+      }
       throw error
     }
 
-    const { data: profile } = await client
+    const { data: profile, error: profileError } = await client
       .from('profiles')
       .select('role')
       .eq('id', authData.user.id)
       .single()
 
-    await navigateTo(getAuthenticatedHome(profile?.role))
+    if (profileError || !profile) {
+      throw profileError ?? new Error('PROFILE_NOT_FOUND')
+    }
+
+    if (authData.user.app_metadata.must_change_password === true) {
+      await navigateTo('/primeiro-acesso')
+      return
+    }
+
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('//')
+      ? route.query.redirect
+      : getAuthenticatedHome(profile.role)
+    const { data: { user: verifiedUser }, error: verificationError } = await client.auth.getUser()
+    if (verificationError || !verifiedUser) { throw verificationError ?? new Error('AUTH_SESSION_NOT_SYNCHRONIZED') }
+    currentUser.value = { ...verifiedUser.user_metadata, ...verifiedUser.app_metadata, iss: '', aud: 'authenticated', exp: 0, iat: 0, sub: verifiedUser.id, email: verifiedUser.email } as typeof currentUser.value
+    await navigateTo(redirect)
   }
   catch {
     errorMessage.value = 'Não foi possível entrar. Confira suas credenciais.'
@@ -96,7 +117,6 @@ useSeoMeta({ title: 'Entrar | Weboot Cursos', robots: 'noindex, nofollow' })
             class="w-full rounded-xl border border-border bg-canvas px-4 py-3 outline-none focus:border-primary-500"
             type="password"
             autocomplete="current-password"
-            minlength="8"
             required
           >
         </div>

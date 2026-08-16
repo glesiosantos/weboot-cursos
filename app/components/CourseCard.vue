@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { Course } from '~/types/course'
 
-defineProps<{ course: Course }>()
-const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+withDefaults(defineProps<{ course: Course, context?: 'public' | 'student', enrolled?: boolean }>(), { context: 'public', enrolled: false })
 </script>
 
 <template>
@@ -24,22 +23,37 @@ const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL
     </div><div class="p-5">
       <h3 class="text-xl font-extrabold tracking-tight">
         {{ course.title }}
-      </h3><p class="mt-2 line-clamp-2 min-h-12 text-sm leading-6 text-muted">
+      </h3><AppBadge
+        v-if="context === 'student' && enrolled"
+        class="mt-2"
+      >
+        JÁ ADQUIRIDO
+      </AppBadge><p class="mt-2 line-clamp-2 min-h-12 text-sm leading-6 text-muted">
         {{ course.short_description }}
       </p><p class="mt-4 text-sm text-muted">
         Por <b class="text-ink">{{ course.instructor_name || 'Equipe WeBoot' }}</b>
       </p><div class="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-muted">
-        <span>{{ Math.round(course.workload_minutes / 60) }}h</span><span v-if="course.starts_at">{{ new Date(course.starts_at).toLocaleDateString('pt-BR') }}</span>
+        <span>{{ course.workload_hours }}h</span><span v-if="course.course_type === 'ONLINE' && course.module_count !== undefined">{{ course.module_count }} módulos</span><span v-if="course.course_type === 'ONLINE' && course.lesson_count !== undefined">{{ course.lesson_count }} aulas</span><span v-if="course.presential">{{ formatCourseDate(course.presential.starts_at) }}</span><span v-if="course.presential">{{ course.presential.city }}/{{ course.presential.state }}</span>
       </div><div class="mt-5 flex items-center justify-between border-t border-border pt-4">
         <div>
-          <span class="text-xs text-muted">A partir de</span><p class="font-extrabold">
-            {{ money.format(course.promotional_price ?? course.price) }}
-          </p>
+          <span
+            v-if="course.pricing_type !== 'BATCHES' && course.promotional_price !== null"
+            class="block text-xs text-muted line-through"
+          >{{ formatPrice(course.price) }}</span><p class="font-extrabold">
+            <span
+              v-if="course.pricing_type === 'BATCHES' && course.public_price !== null"
+              class="block text-xs font-semibold text-muted"
+            >A partir de</span>
+            {{ course.public_price === null ? 'Lotes indisponíveis' : formatPrice(course.public_price ?? course.promotional_price ?? course.price) }}
+          </p><span
+            v-if="course.current_batch"
+            class="text-xs font-bold text-primary"
+          >{{ course.current_batch.name }}</span>
         </div><AppButton
-          to="/cursos"
+          :to="enrolled ? '/aluno/cursos' : `/cursos/${course.slug}`"
           variant="secondary"
         >
-          Ver curso
+          {{ enrolled ? 'Acessar curso' : 'Ver curso' }}
         </AppButton>
       </div>
     </div>

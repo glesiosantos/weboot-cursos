@@ -1,5 +1,7 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Cursos | Weboot Cursos', description: 'Conheça nossos cursos online e presenciais.' })
+const config = useRuntimeConfig()
+useSeoMeta({ title: 'Cursos | Weboot Cursos', description: 'Conheça nossos cursos online e presenciais.', ogTitle: 'Cursos | Weboot Cursos', ogDescription: 'Formações práticas online e presenciais.' })
+useHead({ link: [{ rel: 'canonical', href: `${config.public.appUrl}/cursos` }] })
 const { data: courses, pending } = usePublishedCourses()
 </script>
 
