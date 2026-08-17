@@ -5,22 +5,25 @@ withDefaults(defineProps<{ course: Course, context?: 'public' | 'student', enrol
 </script>
 
 <template>
-  <article class="group overflow-hidden rounded-card border border-border bg-white">
-    <div class="relative aspect-[16/10] overflow-hidden bg-ink">
+  <article class="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-primary-100 hover:shadow-soft">
+    <div class="relative aspect-video overflow-hidden bg-ink">
       <img
         v-if="course.cover_url"
         :src="course.cover_url"
         :alt="`Capa do curso ${course.title}`"
-        class="size-full object-cover transition duration-500 group-hover:scale-105"
+        width="640"
+        height="360"
+        loading="lazy"
+        class="size-full object-cover transition duration-500 group-hover:scale-[1.025]"
       ><div
         v-else
-        class="grid size-full place-items-center bg-[linear-gradient(145deg,#12211b,#08745f)] text-5xl font-black text-white/25"
+        class="grid size-full place-items-center bg-[linear-gradient(145deg,#0b1633,#1f5eff)] text-5xl font-black text-white/25"
       >
         W
       </div><AppBadge class="absolute left-4 top-4">
         {{ course.course_type }}
       </AppBadge>
-    </div><div class="p-5">
+    </div><div class="flex flex-1 flex-col p-6">
       <h3 class="text-xl font-extrabold tracking-tight">
         {{ course.title }}
       </h3><AppBadge
@@ -34,7 +37,7 @@ withDefaults(defineProps<{ course: Course, context?: 'public' | 'student', enrol
         Por <b class="text-ink">{{ course.instructor_name || 'Equipe WeBoot' }}</b>
       </p><div class="mt-3 flex flex-wrap gap-3 text-xs font-semibold text-muted">
         <span>{{ course.workload_hours }}h</span><span v-if="course.course_type === 'ONLINE' && course.module_count !== undefined">{{ course.module_count }} módulos</span><span v-if="course.course_type === 'ONLINE' && course.lesson_count !== undefined">{{ course.lesson_count }} aulas</span><span v-if="course.presential">{{ formatCourseDate(course.presential.starts_at) }}</span><span v-if="course.presential">{{ course.presential.city }}/{{ course.presential.state }}</span>
-      </div><div class="mt-5 flex items-center justify-between border-t border-border pt-4">
+      </div><div class="mt-auto flex items-end justify-between gap-3 border-t border-border pt-5">
         <div>
           <span
             v-if="course.pricing_type !== 'BATCHES' && course.promotional_price !== null"

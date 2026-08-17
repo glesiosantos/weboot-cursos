@@ -2,9 +2,18 @@ import { expect, test } from '@playwright/test'
 
 test('visitor can navigate to authentication', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Conhecimento prático')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Conhecimento')
   await page.getByRole('link', { name: 'Entrar' }).click()
   await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible()
+})
+
+test('home exposes catalog controls and the approved calls to action', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.getByPlaceholder('Buscar cursos...')).toBeVisible()
+  await expect(page.getByRole('tab', { name: 'Online' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Ver todos os cursos' })).toHaveAttribute('href', '/cursos')
+  await expect(page.getByRole('link', { name: 'Acessar minha conta' })).toHaveAttribute('href', '/login')
+  await expect(page.getByRole('link', { name: 'Verificar certificado' })).toHaveAttribute('href', '/certificados')
 })
 
 test('login renders the complete authentication form', async ({ page }) => {

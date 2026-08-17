@@ -17,6 +17,13 @@ describe('phase 1 foundation', () => {
     expect(source).not.toMatch(/catch\s*\{[^}]*return\s*\[\]/s)
   })
 
+  it('keeps the public home lightweight and free from private course content', () => {
+    const home = readFileSync(resolve('app/pages/index.vue'), 'utf8')
+    const source = readFileSync(resolve('app/composables/usePublishedCourses.ts'), 'utf8')
+    expect(home).toContain('.slice(0, 3)')
+    expect(source).not.toMatch(/select\([^)]*(video_path|materials|address_number|postal_code)/)
+  })
+
   it('keeps draft seed data out through RLS', () => {
     const seed = readFileSync(resolve('supabase/seed.sql'), 'utf8')
     const policies = readFileSync(resolve('supabase/migrations/20260809000300_foundation_hardening.sql'), 'utf8')
