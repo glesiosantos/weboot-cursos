@@ -103,39 +103,39 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
                 {{ course.title }}
               </td><td>{{ course.course_type }}</td><td>{{ Array.isArray(course.instructors) ? course.instructors[0]?.name : course.instructors?.name || '—' }}</td><td><AppBadge>{{ course.archived_at ? 'ARQUIVADO' : course.status }}</AppBadge></td><td>{{ formatPrice(Number(course.promotional_price ?? course.price)) }}</td><td>{{ new Date(course.updated_at).toLocaleDateString('pt-BR') }}</td><td class="p-4">
                 <div class="flex flex-wrap gap-2">
-                  <NuxtLink
+                  <AdminIconAction
+                    label="Perfil e edição do curso"
+                    icon="edit"
                     :to="`/admin/cursos/${course.id}`"
-                    class="font-bold text-primary-700"
-                  >Editar</NuxtLink><NuxtLink
+                  /><AdminIconAction
+                    label="Alunos matriculados"
+                    icon="users"
+                    :to="`/admin/cursos/${course.id}/inscritos`"
+                  /><AdminIconAction
+                    label="Visualizar preview"
+                    icon="eye"
                     :to="`/admin/cursos/${course.id}/preview`"
-                    class="font-bold text-primary-700"
-                  >Visualizar preview</NuxtLink><NuxtLink
-                    :to="`/cursos/${course.slug}`"
-                    class="font-bold text-primary-700"
-                  >Visualizar</NuxtLink><button
+                  /><AdminIconAction
+                    label="Duplicar curso"
+                    icon="copy"
                     :disabled="busy === course.id"
-                    class="font-bold text-primary-700"
                     @click="action(course.id, 'duplicate')"
-                  >
-                    Duplicar
-                  </button><button
+                  /><AdminIconAction
                     v-if="course.status === 'PUBLISHED'"
-                    class="font-bold text-primary-700"
+                    label="Despublicar curso"
+                    icon="unpublish"
                     @click="action(course.id, 'unpublish')"
-                  >
-                    Despublicar
-                  </button><button
+                  /><AdminIconAction
                     v-else
-                    class="font-bold text-primary-700"
+                    label="Publicar curso"
+                    icon="publish"
                     @click="action(course.id, 'publish')"
-                  >
-                    Publicar
-                  </button><button
-                    class="font-bold text-danger"
+                  /><AdminIconAction
+                    label="Arquivar curso"
+                    icon="archive"
+                    danger
                     @click="action(course.id, 'archive')"
-                  >
-                    Arquivar
-                  </button>
+                  />
                 </div>
               </td>
             </tr>
@@ -158,23 +158,34 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
             Instrutor: {{ Array.isArray(course.instructors) ? course.instructors[0]?.name : course.instructors?.name || '—' }}
           </p><p class="mt-2 font-black">
             {{ formatPrice(Number(course.promotional_price ?? course.price)) }}
-          </p><div class="mt-5 flex gap-2">
-            <AppButton
+          </p><div class="mt-5 flex flex-wrap gap-2">
+            <AdminIconAction
+              label="Perfil e edição do curso"
+              icon="edit"
               :to="`/admin/cursos/${course.id}`"
-              variant="secondary"
-            >
-              Editar
-            </AppButton><AppButton
+            /><AdminIconAction
+              label="Alunos matriculados"
+              icon="users"
+              :to="`/admin/cursos/${course.id}/inscritos`"
+            /><AdminIconAction
+              label="Visualizar preview"
+              icon="eye"
               :to="`/admin/cursos/${course.id}/preview`"
-              variant="secondary"
-            >
-              Preview
-            </AppButton><button
-              aria-label="Mais ações"
-              class="min-h-11 rounded-xl border border-border px-4"
-            >
-              •••
-            </button>
+            /><AdminIconAction
+              label="Duplicar curso"
+              icon="copy"
+              :disabled="busy === course.id"
+              @click="action(course.id, 'duplicate')"
+            /><AdminIconAction
+              :label="course.status === 'PUBLISHED' ? 'Despublicar curso' : 'Publicar curso'"
+              :icon="course.status === 'PUBLISHED' ? 'unpublish' : 'publish'"
+              @click="action(course.id, course.status === 'PUBLISHED' ? 'unpublish' : 'publish')"
+            /><AdminIconAction
+              label="Arquivar curso"
+              icon="archive"
+              danger
+              @click="action(course.id, 'archive')"
+            />
           </div>
         </article>
       </div>

@@ -3,8 +3,10 @@ import { getChangePasswordErrors } from '~/utils/password'
 
 const props = withDefaults(defineProps<{
   recovery?: boolean
+  initialAccess?: boolean
 }>(), {
   recovery: false,
+  initialAccess: false,
 })
 
 const form = reactive({ newPassword: '', passwordConfirmation: '' })
@@ -15,7 +17,7 @@ const feedback = ref<{ type: 'error' | 'success', title: string, description?: s
 const loading = ref(false)
 const showNewPassword = ref(false)
 const showConfirmation = ref(false)
-const { updatePassword, reauthenticate, signOut } = useAuth()
+const { updatePassword, reauthenticate, refreshSession, signOut } = useAuth()
 const authFeedback = useState<string | undefined>('auth-feedback')
 
 const passwordIsLongEnough = computed(() => form.newPassword.length >= 6)
@@ -68,9 +70,15 @@ const submit = async () => {
         : 'Sua nova senha já pode ser utilizada nos próximos acessos.',
     }
     if (props.recovery) {
+      if (props.initialAccess) { await $fetch('/api/auth/complete-first-access', { method: 'POST' }) }
       authFeedback.value = 'Senha alterada. Entre novamente com sua nova senha.'
       await signOut()
       await navigateTo('/login')
+    }
+    else if (props.initialAccess) {
+      await $fetch('/api/auth/complete-first-access', { method: 'POST' })
+      await refreshSession()
+      await navigateTo('/aluno')
     }
   }
   catch {

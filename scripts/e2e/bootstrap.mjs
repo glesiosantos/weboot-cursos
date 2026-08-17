@@ -6,6 +6,8 @@ const ADMIN_EMAIL = 'e2e.admin@weboot.local'
 const STUDENT_EMAIL = 'e2e.student@weboot.local'
 const COURSE_SLUG = 'e2e-course-catalog-test'
 const COURSE_TITLE = 'E2E Course Catalog Test'
+const GUEST_COURSE_SLUG = 'e2e-guest-registration-test'
+const GUEST_COURSE_TITLE = 'E2E Guest Registration Test'
 
 const generatedPassword = () => `${randomBytes(24).toString('base64url')}!aA9`
 const { url, secret, host } = loadE2EEnvironment()
@@ -106,6 +108,42 @@ assertNoError(await client.from('course_batches').insert({
   activation_mode: 'QUANTITY',
 }), 'Criação do lote E2E')
 
+const guestCoursePayload = {
+  instructor_id: instructor.id,
+  title: GUEST_COURSE_TITLE,
+  slug: GUEST_COURSE_SLUG,
+  short_description: 'Curso público isolado para validar inscrição sem login.',
+  description: 'Fixture pública sem dados reais para o fluxo guest.',
+  course_type: 'ONLINE',
+  workload_hours: 1,
+  price: 0,
+  promotional_price: null,
+  pricing_type: 'FIXED',
+  show_future_batches: false,
+  status: 'DRAFT',
+  published_at: null,
+  archived_at: null,
+  program: 'Inscrição pública E2E',
+  requirements: 'Nenhum dado real é necessário.',
+  target_audience: 'Execução automatizada E2E.',
+  folder_alt_text: null,
+  folder_path: null,
+  folder_mime_type: null,
+}
+let guestCourse = assertNoError(await client.from('courses').select('id').eq('slug', GUEST_COURSE_SLUG).maybeSingle(), 'Busca do curso guest E2E')
+if (guestCourse) {
+  assertNoError(await client.from('courses').update(guestCoursePayload).eq('id', guestCourse.id), 'Reset do curso guest E2E')
+}
+else {
+  guestCourse = assertNoError(await client.from('courses').insert(guestCoursePayload).select('id').single(), 'Criação do curso guest E2E')
+}
+let guestModule = assertNoError(await client.from('course_modules').select('id').eq('course_id', guestCourse.id).eq('position', 0).maybeSingle(), 'Busca do módulo guest E2E')
+if (!guestModule) {
+  guestModule = assertNoError(await client.from('course_modules').insert({ course_id: guestCourse.id, title: 'Módulo Guest E2E', position: 0 }).select('id').single(), 'Criação do módulo guest E2E')
+}
+assertNoError(await client.from('lessons').upsert({ module_id: guestModule.id, title: 'Aula Guest E2E', lesson_type: 'TEXT', content: 'Fixture pública.', position: 0, is_required: true, is_preview: true }, { onConflict: 'module_id,position' }), 'Garantia da aula guest E2E')
+assertNoError(await client.from('courses').update({ status: 'PUBLISHED', published_at: new Date().toISOString() }).eq('id', guestCourse.id), 'Publicação do curso guest E2E')
+
 const contents = [
   '# Gerado por npm run e2e:bootstrap. Nao versionar.',
   `E2E_ADMIN_EMAIL=${ADMIN_EMAIL}`,
@@ -116,6 +154,9 @@ const contents = [
   `E2E_COURSE_SLUG=${COURSE_SLUG}`,
   `E2E_COURSE_TITLE=${COURSE_TITLE}`,
   `E2E_INSTRUCTOR_ID=${instructor.id}`,
+  `E2E_GUEST_COURSE_ID=${guestCourse.id}`,
+  `E2E_GUEST_COURSE_SLUG=${GUEST_COURSE_SLUG}`,
+  `E2E_GUEST_COURSE_TITLE=${GUEST_COURSE_TITLE}`,
   `NUXT_PUBLIC_SUPABASE_URL=${url}`,
   `NUXT_PUBLIC_SUPABASE_KEY=${process.env.NUXT_PUBLIC_SUPABASE_KEY ?? ''}`,
   '',

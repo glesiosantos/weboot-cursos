@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
 
-const props = defineProps<{ courseId: string }>()
+const props = defineProps<{ courseId: string, courseSlug: string }>()
 const user = useSupabaseUser()
-const soon = ref(false)
 const client = useSupabaseClient<Database>()
 const { data: context } = await useAsyncData(`course-cta-${props.courseId}`, async () => {
   if (!user.value) { return { role: null, enrolled: false } }
@@ -19,27 +18,18 @@ const label = computed(() => {
   if (context.value?.enrolled) { return 'ACESSAR CURSO' }
   return 'ADQUIRIR CURSO'
 })
-const act = async () => {
-  if (!user.value) { return navigateTo('/login') }
-  if (context.value?.role === 'ADMIN') { return navigateTo(`/admin/cursos/${props.courseId}`) }
-  if (context.value?.enrolled) { return navigateTo('/aluno/cursos') }
-  soon.value = true
-}
+const target = computed(() => {
+  if (context.value?.role === 'ADMIN') { return `/admin/cursos/${props.courseId}` }
+  if (context.value?.enrolled) { return '/aluno/cursos' }
+  return `/cursos/${encodeURIComponent(props.courseSlug)}/inscricao`
+})
 </script>
 
 <template>
-  <div>
-    <AppButton
-      class="w-full"
-      @click="act"
-    >
-      {{ label }}
-    </AppButton><p
-      v-if="soon"
-      role="status"
-      class="mt-3 text-center text-sm text-muted"
-    >
-      Inscrições disponíveis em breve.
-    </p>
-  </div>
+  <AppButton
+    :to="target"
+    class="w-full"
+  >
+    {{ label }}
+  </AppButton>
 </template>

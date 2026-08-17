@@ -8,6 +8,8 @@ const loading = ref(false)
 const { signIn } = useAuth()
 const client = useSupabaseClient<Database>()
 const authFeedback = useState<string | undefined>('auth-feedback')
+const route = useRoute()
+const currentUser = useSupabaseUser()
 
 onBeforeUnmount(() => {
   authFeedback.value = undefined
@@ -36,7 +38,18 @@ const submit = async () => {
       throw profileError ?? new Error('PROFILE_NOT_FOUND')
     }
 
-    await navigateTo(getAuthenticatedHome(profile.role))
+    if (authData.user.app_metadata.must_change_password === true) {
+      await navigateTo('/primeiro-acesso')
+      return
+    }
+
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/') && !route.query.redirect.startsWith('//')
+      ? route.query.redirect
+      : getAuthenticatedHome(profile.role)
+    const { data: { user: verifiedUser }, error: verificationError } = await client.auth.getUser()
+    if (verificationError || !verifiedUser) { throw verificationError ?? new Error('AUTH_SESSION_NOT_SYNCHRONIZED') }
+    currentUser.value = { ...verifiedUser.user_metadata, ...verifiedUser.app_metadata, iss: '', aud: 'authenticated', exp: 0, iat: 0, sub: verifiedUser.id, email: verifiedUser.email } as typeof currentUser.value
+    await navigateTo(redirect)
   }
   catch {
     errorMessage.value = 'Não foi possível entrar. Confira suas credenciais.'

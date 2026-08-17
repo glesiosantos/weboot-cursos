@@ -1,0 +1,95 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import { guestRegistrationSchema, isValidCpf, normalizeWhatsapp } from '../../server/utils/registration'
+
+const migration = readFileSync('supabase/migrations/20260813000100_guest_registration.sql', 'utf8')
+const identityMigration = readFileSync('supabase/migrations/20260815000100_unique_registration_identity_and_transparent_payment.sql', 'utf8')
+const pendingOrderFix = readFileSync('supabase/migrations/20260815000200_reuse_legacy_pending_guest_orders.sql', 'utf8')
+const duplicateIdentityFix = readFileSync('supabase/migrations/20260815000300_reject_duplicate_registration_identity.sql', 'utf8')
+const endpoint = readFileSync('server/api/registrations/index.post.ts', 'utf8')
+const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
+
+const valid = {
+  course_id: 'a174f612-35c6-45c0-bf07-a0047bb6fdd3', full_name: 'Maria da Silva', cpf: '529.982.247-25',
+  whatsapp: '(86) 99999-9999', email: 'maria@example.com', terms_accepted: true, marketing_accepted: false,
+}
+
+describe('guest registration', () => {
+  it('validates and normalizes personal data on the server', () => {
+    expect(isValidCpf(valid.cpf)).toBe(true)
+    expect(isValidCpf('111.111.111-11')).toBe(false)
+    expect(normalizeWhatsapp(valid.whatsapp)).toBe('+5586999999999')
+    expect(guestRegistrationSchema.safeParse(valid).success).toBe(true)
+    expect(guestRegistrationSchema.safeParse({ ...valid, email: 'invalid' }).success).toBe(false)
+    expect(guestRegistrationSchema.safeParse({ ...valid, terms_accepted: false }).success).toBe(false)
+  })
+
+  it('accepts customer names from 6 to 150 characters', () => {
+    expect(guestRegistrationSchema.safeParse({ ...valid, full_name: 'a'.repeat(5) }).success).toBe(false)
+    expect(guestRegistrationSchema.safeParse({ ...valid, full_name: 'a'.repeat(6) }).success).toBe(true)
+    expect(guestRegistrationSchema.safeParse({ ...valid, full_name: 'a'.repeat(150) }).success).toBe(true)
+    expect(guestRegistrationSchema.safeParse({ ...valid, full_name: 'a'.repeat(151) }).success).toBe(false)
+  })
+
+  it('keeps CPF protected and guest orders traceable without an auth user', () => {
+    expect(migration).toContain('cpf_encrypted text not null')
+    expect(migration).toContain('cpf_hash text not null')
+    expect(migration).toContain('alter table public.orders alter column user_id drop not null')
+    expect(migration).toContain('registration_id uuid unique')
+    expect(endpoint).toContain('protectRegistration(parsed.data.cpf')
+    expect(endpoint).not.toMatch(/console\.(log|info|debug).*cpf/i)
+  })
+
+  it('gets price, batch and capacity from the transactional database function', () => {
+    expect(endpoint).not.toMatch(/body\.(price|batch|total)|parsed\.data\.(price|batch|total)/)
+    expect(migration).toContain('get_current_course_batch(target_course_id, now())')
+    expect(migration).toContain('raise exception \'course sold out\'')
+    expect(migration).toContain('raise exception \'course batch sold out\'')
+  })
+
+  it('collects only the required identity and contact data', () => {
+    expect(guestRegistrationSchema.safeParse(valid).success).toBe(true)
+    expect(endpoint).not.toMatch(/postal_code|address_number|city_ibge/)
+  })
+
+  it('keeps a single contact per CPF and reuses it for multiple orders', () => {
+    expect(identityMigration).toContain('unique index registration_contacts_cpf_hash_key')
+    expect(identityMigration).toContain('pg_advisory_xact_lock')
+    expect(identityMigration).toContain('where cpf_hash = participant_cpf_hash for update')
+    expect(identityMigration).toContain('alter table public.orders drop constraint if exists orders_registration_id_key')
+    expect(endpoint).toContain('admin.from(\'orders\').update({ public_reference_hash: sha256(reference) })')
+    expect(identityMigration).toContain('orders_public_reference_hash_key')
+    expect(endpoint).toContain('`/pagamento/${encodeURIComponent(reference)}`')
+    expect(endpoint).not.toContain('AsaasHostedCheckoutProvider')
+  })
+
+  it('reuses or expires pending orders left by the legacy checkout', () => {
+    expect(pendingOrderFix).toContain('status in (\'\'PENDING\'\', \'\'WAITING_PAYMENT\'\')')
+    expect(pendingOrderFix).toContain('expires_at <= now()')
+    expect(pendingOrderFix).toContain('expires_at > now()')
+  })
+
+  it('rejects an existing CPF or normalized email with database constraints', () => {
+    expect(identityMigration).toContain('unique index registration_contacts_cpf_hash_key')
+    expect(duplicateIdentityFix).toContain('unique index registration_contacts_email_key')
+    expect(duplicateIdentityFix).toContain('raise exception \'cpf already registered\'')
+    expect(duplicateIdentityFix).toContain('raise exception \'email already registered\'')
+  })
+
+  it('does not require an email confirmation field', () => {
+    expect(guestRegistrationSchema.safeParse({ ...valid, email_confirmation: valid.email }).success).toBe(false)
+  })
+
+  it('creates enrollment only through the shared confirmation service', () => {
+    expect(webhook).toContain('completeCommercialOrder')
+    expect(endpoint).toContain('Number(order.unit_price) === 0')
+    expect(migration).toContain('if target_order.user_id is null then raise exception \'order user not associated\'')
+    expect(migration).toContain('on conflict (user_id, course_id) do update')
+  })
+
+  it('uses an opaque public reference and never CPF in a public lookup', () => {
+    expect(endpoint).toContain('randomBytes(24).toString(\'base64url\')')
+    expect(migration).toContain('public_reference_hash text not null unique')
+    expect(migration).not.toMatch(/get_registration_status[\s\S]*cpf_encrypted/)
+  })
+})

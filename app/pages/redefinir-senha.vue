@@ -1,35 +1,40 @@
 <script setup lang="ts">
 const client = useSupabaseClient()
-const status = ref<'processing' | 'ready' | 'invalid'>('processing')
+const status = ref<'processing' | 'ready' | 'invalid'>('invalid')
+const initialAccess = ref(false)
 let recoveryEventReceived = false
 
-const clearAuthFragment = () => {
-  if (window.location.hash) {
-    window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`)
-  }
+const clearAuthPayload = () => {
+  const url = new URL(window.location.href)
+  url.hash = ''
+  url.searchParams.delete('code')
+  window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`)
 }
 
 const { data: authListener } = client.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     recoveryEventReceived = true
+    initialAccess.value = session?.user.app_metadata?.must_change_password === true
     status.value = session ? 'ready' : 'invalid'
   }
 })
 
 onMounted(async () => {
-  const hasRecoveryPayload = Boolean(window.location.hash || new URLSearchParams(window.location.search).get('code'))
-  if (!hasRecoveryPayload) {
-    status.value = 'invalid'
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const hasRecoveryPayload = hashParams.get('type') === 'recovery' || Boolean(new URLSearchParams(window.location.search).get('code'))
+  const hasAuthError = hashParams.has('error')
+  if (!hasRecoveryPayload && !hasAuthError) {
     return
   }
+  status.value = 'processing'
   const { data, error } = await client.auth.getSession()
 
-  // PASSWORD_RECOVERY is queued by the SDK after it has consumed the URL.
+  // O SDK pode consumir o link e criar a sessão antes de este listener ser registrado.
   window.setTimeout(() => {
     if (status.value === 'processing') {
-      status.value = !error && data.session && recoveryEventReceived ? 'ready' : 'invalid'
+      status.value = !error && data.session && (hasRecoveryPayload || recoveryEventReceived) ? 'ready' : 'invalid'
     }
-    clearAuthFragment()
+    clearAuthPayload()
   }, 0)
 })
 
@@ -59,6 +64,7 @@ useSeoMeta({ title: 'Redefinir senha | WeBoot Cursos', robots: 'noindex, nofollo
       v-else-if="status === 'ready'"
       class="mt-8"
       recovery
+      :initial-access="initialAccess"
     />
 
     <div

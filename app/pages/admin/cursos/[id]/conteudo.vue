@@ -48,9 +48,17 @@ const moveLesson = async (module: NonNullable<typeof data.value>['modules'][numb
 const uploadMaterial = async () => {
   if (!materialTitle.value.trim() || !materialFile.value) { return }
   const body = new FormData(); body.append('title', materialTitle.value); body.append('file', materialFile.value)
-  try { await $fetch(`/api/admin/courses/${id}/materials`, { method: 'POST', body }); materialTitle.value = ''; materialFile.value = null }
+  try { await $fetch(`/api/admin/courses/${id}/materials`, { method: 'POST', body }); materialTitle.value = ''; materialFile.value = null; await refresh() }
   catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao enviar material' }
 }
+const removeMaterial = async (material: NonNullable<typeof data.value>['materials'][number]) => {
+  if (!confirm(`Remover o material “${material.title}”?`)) { return }
+  busy.value = material.id
+  try { await $fetch(`/api/admin/courses/${id}/materials/${material.id}`, { method: 'DELETE' }); await refresh() }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Falha ao remover material' }
+  finally { busy.value = null }
+}
+const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`
 </script>
 
 <template>
@@ -219,7 +227,40 @@ const uploadMaterial = async () => {
         class="mt-4"
       >
         Enviar material
-      </AppButton>
+      </AppButton><div
+        v-if="data?.materials.length"
+        class="mt-6 border-t border-border pt-5"
+      >
+        <h3 class="font-black">
+          Materiais anexados
+        </h3><ul class="mt-3 space-y-3">
+          <li
+            v-for="material in data.materials"
+            :key="material.id"
+            class="flex items-center justify-between gap-4 rounded-xl bg-canvas p-4"
+          >
+            <div>
+              <p class="font-bold">
+                {{ material.title }}
+              </p><p class="text-xs text-muted">
+                {{ material.mime_type }} · {{ fileSize(material.file_size) }}
+              </p>
+            </div><button
+              type="button"
+              class="text-sm font-bold text-danger"
+              :disabled="busy === material.id"
+              @click="removeMaterial(material)"
+            >
+              Remover
+            </button>
+          </li>
+        </ul>
+      </div><p
+        v-else
+        class="mt-6 border-t border-border pt-5 text-sm text-muted"
+      >
+        Nenhum material anexado.
+      </p>
     </form>
   </section>
 </template>

@@ -196,6 +196,7 @@ const presentationGrid = computed(() => props.previewViewport === 'mobile' || pr
         </div><CoursePurchaseCTA
           v-else
           :course-id="course.id"
+          :course-slug="course.slug"
           class="mt-6"
         />
       </aside>
