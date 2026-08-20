@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' | 'archive' | 'materials' | 'bell' | 'checkin' }>()
+defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'materials' | 'bell' | 'checkin' }>()
 </script>
 
 <template>
@@ -34,6 +34,7 @@ defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' 
     <template v-else-if="name === 'publish'"><path d="M12 3v12M7 8l5-5 5 5" /><path d="M5 21h14" /></template>
     <template v-else-if="name === 'unpublish'"><path d="M12 21V9M17 16l-5 5-5-5" /><path d="M5 3h14" /></template>
     <template v-else-if="name === 'archive'"><path d="M3 6h18M5 6v15h14V6M3 3h18v3H3z" /><path d="M9 10h6" /></template>
+    <template v-else-if="name === 'unarchive'"><path d="M3 6h18M5 6v15h14V6M3 3h18v3H3z" /><path d="M12 17V9M8.5 12.5 12 9l3.5 3.5" /></template>
     <template v-else-if="name === 'materials'"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" /></template>
     <template v-else-if="name === 'bell'"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></template>
     <template v-else><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></template>

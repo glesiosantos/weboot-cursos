@@ -18,6 +18,28 @@ describe('public course catalog', () => {
     expect(wrapper.text()).not.toContain('Curso interno em revisão')
   })
 
+  it('filters the featured courses by search and modality', async () => {
+    const presential: Course = { ...published, id: '2', title: 'Workshop presencial', slug: 'workshop-presencial', course_type: 'PRESENCIAL' }
+    const wrapper = await mountSuspended(FeaturedCourses, { props: { courses: [published, presential] } })
+
+    await wrapper.get('input[type="search"]').setValue('workshop')
+    expect(wrapper.text()).toContain('Workshop presencial')
+    expect(wrapper.text()).not.toContain('Curso publicado')
+
+    await wrapper.get('input[type="search"]').setValue('')
+    const onlineTab = wrapper.findAll('[role="tab"]').find(tab => tab.text() === 'Online')
+    expect(onlineTab).toBeDefined()
+    await onlineTab!.trigger('click')
+    expect(wrapper.text()).toContain('Curso publicado')
+    expect(wrapper.text()).not.toContain('Workshop presencial')
+  })
+
+  it('links the catalog and course calls to action to public routes', async () => {
+    const wrapper = await mountSuspended(FeaturedCourses, { props: { courses: [published] } })
+    expect(wrapper.find(`a[href="/cursos/${published.slug}"]`).exists()).toBe(true)
+    expect(wrapper.find('a[href="/cursos"]').exists()).toBe(true)
+  })
+
   it('renders fixed and current-batch prices with distinct labels', async () => {
     const fixed = await mountSuspended(CourseCard, { props: { course: { ...published, pricing_type: 'FIXED', promotional_price: 297, public_price: 297 } } })
     expect(visibleText(fixed.text())).toContain('R$ 397,00')

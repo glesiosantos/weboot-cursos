@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Database } from '~/types/database.types'
 
+definePageMeta({ middleware: 'guest' })
+
 const email = ref('')
 const password = ref('')
 const errorMessage = ref('')

@@ -3,6 +3,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   modules: ['@nuxt/eslint', '@nuxtjs/supabase'],
   devtools: { enabled: true },
+  app: {
+    head: {
+      link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
+    },
+  },
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     supabaseSecretKey: '',
