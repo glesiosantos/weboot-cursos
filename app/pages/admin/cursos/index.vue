@@ -3,6 +3,7 @@ definePageMeta({ layout: 'admin', middleware: ['auth', 'admin'] })
 useSeoMeta({ title: 'Cursos | Administração', robots: 'noindex' })
 const { data: courses, pending, refresh, error } = await useFetch('/api/admin/courses')
 const busy = ref<string | null>(null)
+const actionError = ref('')
 const search = ref('')
 const modality = ref<'TODOS' | 'ONLINE' | 'PRESENCIAL'>('TODOS')
 const filteredCourses = computed(() => {
@@ -14,8 +15,9 @@ const filteredCourses = computed(() => {
   })
 })
 const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'duplicate') => {
-  busy.value = id
+  busy.value = id; actionError.value = ''
   try { await $fetch(`/api/admin/courses/${id}/${name}`, { method: 'POST' }); await refresh() }
+  catch (error) { actionError.value = apiErrorMessage(error, 'Não foi possível alterar o curso.') }
   finally { busy.value = null }
 }
 </script>
@@ -62,6 +64,13 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'u
         </option>
       </select>
     </div>
+    <p
+      v-if="actionError"
+      role="alert"
+      class="mt-6 rounded-xl bg-red-50 p-4 text-danger"
+    >
+      {{ actionError }}
+    </p>
     <p
       v-if="error"
       role="alert"

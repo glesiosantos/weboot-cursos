@@ -54,7 +54,7 @@ export const publicationIssues = async (client: Client, id: string) => {
   if (!validCourse.slug.trim()) { issues.push('Slug') }
   if (!validCourse.description.trim()) { issues.push('Descrição') }
   if (!validCourse.instructor_id) { issues.push('Instrutor') }
-  if (validCourse.workload_hours <= 0) { issues.push('Carga horária') }
+  if (!Number.isInteger(validCourse.workload_hours) || validCourse.workload_hours <= 0) { issues.push('Carga horária em horas inteiras') }
   if (validCourse.price < 0) { issues.push('Preço') }
   if (validCourse.pricing_type === 'BATCHES') {
     const { data, error: batchError } = await client.from('course_batches').select('price,max_sales,ends_at,status').eq('course_id', id)
