@@ -15,7 +15,7 @@ const width = computed(() => ({ desktop: '1280px', tablet: '768px', mobile: '390
 const publish = async () => {
   publishing.value = true; publishError.value = ''
   try { await $fetch(`/api/admin/courses/${id}/publish`, { method: 'POST' }); await refresh() }
-  catch (error) { publishError.value = error instanceof Error ? error.message : 'Não foi possível publicar o curso.' }
+  catch (error) { publishError.value = apiErrorMessage(error, 'Não foi possível publicar o curso.') }
   finally { publishing.value = false }
 }
 </script>

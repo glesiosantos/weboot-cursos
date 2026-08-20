@@ -11,6 +11,8 @@ describe('course validation', () => {
     expect(courseSchema.safeParse({ ...valid, course_type: 'HIBRIDO' }).success).toBe(false)
     expect(courseSchema.safeParse({ ...valid, price: -1 }).success).toBe(false)
     expect(courseSchema.safeParse({ ...valid, workload_hours: 0 }).success).toBe(false)
+    expect(courseSchema.safeParse({ ...valid, workload_hours: 24.01 }).success).toBe(false)
+    expect(courseSchema.safeParse({ ...valid, workload_hours: 24 }).success).toBe(true)
   })
   it('rejects a promotional price above price', () => expect(courseSchema.safeParse({ ...valid, promotional_price: 101 }).success).toBe(false))
   it('validates batch pricing rules', () => {
