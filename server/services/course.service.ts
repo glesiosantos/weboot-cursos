@@ -71,11 +71,18 @@ export const publicationIssues = async (client: Client, id: string) => {
     if (!data) { issues.push('Local, datas e capacidade') }
   }
   else {
-    const { data: modules } = await client.from('course_modules').select('id').eq('course_id', id)
+    const { data: modules, error: moduleError } = await client.from('course_modules').select('id,title,position').eq('course_id', id).order('position')
+    if (moduleError) { fail(moduleError.message, 500) }
     if (!modules?.length) { issues.push('Ao menos um módulo') }
     else {
-      const { count } = await client.from('lessons').select('id', { count: 'exact', head: true }).in('module_id', modules.map(module => module.id))
-      if (!count) { issues.push('Ao menos uma aula') }
+      const { data: lessons, error: lessonError } = await client.from('lessons').select('module_id').in('module_id', modules.map(module => module.id))
+      if (lessonError) { fail(lessonError.message, 500) }
+      const moduleIdsWithLessons = new Set((lessons ?? []).map(lesson => lesson.module_id))
+      modules.forEach((module, index) => {
+        if (!moduleIdsWithLessons.has(module.id)) {
+          issues.push(`Ao menos uma aula no módulo ${index + 1} — ${module.title}`)
+        }
+      })
     }
   }
   return issues
