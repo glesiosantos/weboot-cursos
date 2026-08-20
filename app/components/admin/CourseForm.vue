@@ -55,7 +55,7 @@ const togglePublication = async () => {
     form.status = action === 'publish' ? 'PUBLISHED' : 'DRAFT'
     message.value = action === 'publish' ? 'Curso publicado com sucesso.' : 'Curso despublicado com sucesso.'
   }
-  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Não foi possível alterar a publicação.' }
+  catch (error) { errorMessage.value = apiErrorMessage(error, 'Não foi possível alterar a publicação.') }
 }
 const uploadCover = async () => {
   if (!props.courseId || !cover.value) { return }
@@ -179,8 +179,8 @@ const removeFolder = async () => {
         >{{ instructor.name }}</option></select></label><label class="font-bold">Carga horária<input
           v-model.number="form.workload_hours"
           type="number"
-          min="0.01"
-          step="0.5"
+          min="1"
+          step="1"
           required
           class="field"
         ></label><fieldset class="sm:col-span-2">

@@ -30,7 +30,7 @@ export const presentialDetailsSchema = z.object({
 export const courseSchema = z.object({
   title: z.string().trim().min(1, 'Título obrigatório').max(160), slug: slugSchema,
   short_description: z.string().trim().max(280).default(''), description: z.string().trim().default(''),
-  course_type: courseTypeSchema, instructor_id: z.uuid().nullable().optional(), workload_hours: z.coerce.number().positive(),
+  course_type: courseTypeSchema, instructor_id: z.uuid().nullable().optional(), workload_hours: z.coerce.number().int('A carga horária deve ser informada em horas inteiras').positive(),
   price: z.coerce.number().min(0), promotional_price: z.coerce.number().min(0).nullable().optional(),
   pricing_type: pricingTypeSchema.default('FIXED'), show_future_batches: z.boolean().default(false), batches: z.array(courseBatchSchema).default([]),
   status: courseStatusSchema.default('DRAFT'), program: z.string().trim().nullable().optional(), requirements: z.string().trim().nullable().optional(),
