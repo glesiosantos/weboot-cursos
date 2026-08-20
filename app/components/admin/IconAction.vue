@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ inheritAttrs: false })
-defineProps<{ label: string, icon: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' | 'archive' | 'materials' | 'bell' | 'checkin', to?: string, danger?: boolean, disabled?: boolean }>()
+defineProps<{ label: string, icon: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'materials' | 'bell' | 'checkin', to?: string, danger?: boolean, disabled?: boolean }>()
 </script>
 
 <template>

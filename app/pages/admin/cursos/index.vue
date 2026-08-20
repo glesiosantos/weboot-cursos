@@ -13,7 +13,7 @@ const filteredCourses = computed(() => {
     return matchesModality && matchesSearch
   })
 })
-const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'duplicate') => {
+const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'duplicate') => {
   busy.value = id
   try { await $fetch(`/api/admin/courses/${id}/${name}`, { method: 'POST' }); await refresh() }
   finally { busy.value = null }
@@ -121,7 +121,12 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
                     :disabled="busy === course.id"
                     @click="action(course.id, 'duplicate')"
                   /><AdminIconAction
-                    v-if="course.status === 'PUBLISHED'"
+                    v-if="course.archived_at"
+                    label="Desarquivar curso"
+                    icon="unarchive"
+                    @click="action(course.id, 'unarchive')"
+                  /><AdminIconAction
+                    v-else-if="course.status === 'PUBLISHED'"
                     label="Despublicar curso"
                     icon="unpublish"
                     @click="action(course.id, 'unpublish')"
@@ -131,6 +136,7 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
                     icon="publish"
                     @click="action(course.id, 'publish')"
                   /><AdminIconAction
+                    v-if="!course.archived_at"
                     label="Arquivar curso"
                     icon="archive"
                     danger
@@ -151,7 +157,7 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
           <div class="flex justify-between gap-3">
             <h2 class="font-black">
               {{ course.title }}
-            </h2><AppBadge>{{ course.status }}</AppBadge>
+            </h2><AppBadge>{{ course.archived_at ? 'ARQUIVADO' : course.status }}</AppBadge>
           </div><p class="mt-2 text-xs font-bold text-muted">
             {{ course.course_type }}
           </p><p class="mt-4 text-sm">
@@ -177,10 +183,17 @@ const action = async (id: string, name: 'publish' | 'unpublish' | 'archive' | 'd
               :disabled="busy === course.id"
               @click="action(course.id, 'duplicate')"
             /><AdminIconAction
+              v-if="course.archived_at"
+              label="Desarquivar curso"
+              icon="unarchive"
+              @click="action(course.id, 'unarchive')"
+            /><AdminIconAction
+              v-else
               :label="course.status === 'PUBLISHED' ? 'Despublicar curso' : 'Publicar curso'"
               :icon="course.status === 'PUBLISHED' ? 'unpublish' : 'publish'"
               @click="action(course.id, course.status === 'PUBLISHED' ? 'unpublish' : 'publish')"
             /><AdminIconAction
+              v-if="!course.archived_at"
               label="Arquivar curso"
               icon="archive"
               danger
