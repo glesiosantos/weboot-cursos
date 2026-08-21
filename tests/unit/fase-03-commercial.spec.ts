@@ -45,8 +45,9 @@ describe('Fase 03 commercial contract', () => {
     expect(paymentConfirmationFix).toContain('#variable_conflict use_column')
   })
 
-  it('uses only transparent Asaas Sandbox payment', () => {
+  it('uses transparent Asaas payment with official environments', () => {
     expect(provider).toContain('api-sandbox.asaas.com')
+    expect(provider).toContain('api.asaas.com')
     expect(provider).toContain('/payments')
     expect(provider).toContain('billingType: \'PIX\'')
     expect(provider).toContain('billingType: \'CREDIT_CARD\'')

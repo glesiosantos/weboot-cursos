@@ -18,9 +18,9 @@ Permanecem futuras: múltiplos participantes, inscrição corporativa, transfer�
 
 ## Configuração
 
-Configure somente no servidor `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_WEBHOOK_TOKEN` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Nesta fase, `NUXT_ASAAS_API_URL` deve continuar `https://api-sandbox.asaas.com/v3`. Pix e cartão à vista usam o valor do curso/lote. Para cartão de 2 a 6 parcelas, configure `NUXT_ASAAS_CARD_INSTALLMENT_PERCENT=2.49` e `NUXT_ASAAS_CARD_FIXED=5.49`.
+Configure somente no servidor `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_WEBHOOK_TOKEN` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Use `NUXT_ASAAS_API_URL=https://api-sandbox.asaas.com/v3` em testes e `NUXT_ASAAS_API_URL=https://api.asaas.com/v3` em produção, sempre com a chave correspondente ao mesmo ambiente. Pix e cartão à vista usam o valor do curso/lote. Para cartão de 2 a 6 parcelas, configure `NUXT_ASAAS_CARD_INSTALLMENT_PERCENT=2.49` e `NUXT_ASAAS_CARD_FIXED=5.49`.
 
-No Sandbox, cadastre `https://SEU_DOMINIO/api/webhooks/asaas`, o mesmo token seguro (32–255 caracteres) e apenas os eventos necessários: `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_REFUNDED`, `PAYMENT_DELETED` e `PAYMENT_OVERDUE`. Em desenvolvimento, exponha a aplicação com um túnel HTTPS como ngrok; nunca grave a URL temporária no código.
+No ambiente correspondente do Asaas, cadastre `https://SEU_DOMINIO/api/webhooks/asaas`, o mesmo token seguro (32–255 caracteres) e apenas os eventos necessários: `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_REFUNDED`, `PAYMENT_DELETED` e `PAYMENT_OVERDUE`. Em desenvolvimento, exponha a aplicação com um túnel HTTPS como ngrok; nunca grave a URL temporária no código.
 
 ## Regras
 

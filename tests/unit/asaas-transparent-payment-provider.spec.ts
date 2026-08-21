@@ -5,6 +5,21 @@ describe('AsaasTransparentPaymentProvider', () => {
   beforeEach(() => vi.stubGlobal('createError', (value: unknown) => value))
   afterEach(() => vi.unstubAllGlobals())
 
+  it('accepts the official production API URL', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'pay_pix', status: 'PENDING' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const provider = new AsaasTransparentPaymentProvider('https://api.asaas.com/v3', 'key')
+
+    await provider.createPixPayment({ customer: 'cus_1', value: 100, dueDate: '2026-08-20', description: 'Curso', externalReference: 'order-1' })
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.asaas.com/v3/payments', expect.any(Object))
+  })
+
+  it('rejects non-official API URLs', () => {
+    expect(() => new AsaasTransparentPaymentProvider('https://api.asaas.com.example.com/v3', 'key'))
+      .toThrow(expect.objectContaining({ statusMessage: 'URL da API Asaas não permitida' }))
+  })
+
   it('creates a Pix payment and retrieves its QR Code without a GET body', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'pay_pix', status: 'PENDING' }) })

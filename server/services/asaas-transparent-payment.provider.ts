@@ -27,9 +27,15 @@ export type HolderInput = {
 
 export class AsaasTransparentPaymentProvider {
   constructor(private readonly apiUrl: string, private readonly apiKey: string) {
-    if (!apiUrl.includes('api-sandbox.asaas.com')) {
-      throw createError({ statusCode: 503, statusMessage: 'Pagamentos liberados exclusivamente no Asaas Sandbox nesta fase' })
+    const normalizedApiUrl = apiUrl.replace(/\/$/, '')
+    const allowedApiUrls = new Set([
+      'https://api-sandbox.asaas.com/v3',
+      'https://api.asaas.com/v3',
+    ])
+    if (!allowedApiUrls.has(normalizedApiUrl)) {
+      throw createError({ statusCode: 503, statusMessage: 'URL da API Asaas não permitida' })
     }
+    this.apiUrl = normalizedApiUrl
   }
 
   private async request<T extends AsaasError>(path: string, options: RequestInit): Promise<T> {
