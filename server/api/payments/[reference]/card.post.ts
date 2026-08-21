@@ -17,8 +17,6 @@ const schema = z.object({
   expiry_month: z.string().regex(/^(0[1-9]|1[0-2])$/),
   expiry_year: z.string().regex(/^\d{4}$/),
   ccv: z.string().regex(/^\d{3,4}$/),
-  postal_code: z.string().transform(digits).pipe(z.string().length(8, 'Informe um CEP válido')),
-  address_number: z.string().trim().min(1, 'Informe o número do endereço').max(20),
   installments: z.number().int().min(1).max(6),
 }).strict()
 
@@ -42,7 +40,7 @@ export default defineEventHandler(async (event) => {
     creditCardHolderInfo: {
       name: parsed.data.holder_name, email: context.contact.email,
       cpfCnpj: revealRegistrationCpf(cpf, String(config.registrationDataKey || '')),
-      postalCode: parsed.data.postal_code, addressNumber: parsed.data.address_number,
+      postalCode: '64000000', addressNumber: '10',
       phone: context.contact.whatsapp.replace(/\D/g, ''), mobilePhone: context.contact.whatsapp.replace(/\D/g, ''),
     },
     remoteIp: getRequestIP(event, { xForwardedFor: true }) || '127.0.0.1',

@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 const dashboardApi = readFileSync('server/api/admin/dashboard.get.ts', 'utf8')
 const participantsApi = readFileSync('server/api/admin/courses/[id]/participants.get.ts', 'utf8')
 const participantsPage = readFileSync('app/pages/admin/cursos/[id]/inscritos.vue', 'utf8')
+const participantDeleteApi = readFileSync('server/api/admin/courses/[id]/participants/[orderId].delete.ts', 'utf8')
+const participantRemovalMigration = readFileSync('supabase/migrations/20260821000100_admin_remove_course_participant.sql', 'utf8')
 const studentCourseApi = readFileSync('server/api/student/courses/[enrollmentId].get.ts', 'utf8')
 const materialDeleteApi = readFileSync('server/api/admin/courses/[id]/materials/[materialId].delete.ts', 'utf8')
 const studentCoursePage = readFileSync('app/pages/aluno/cursos/[enrollmentId].vue', 'utf8')
@@ -22,6 +24,17 @@ describe('sales dashboard and student materials', () => {
     expect(participantsApi).toContain('registrations: participants.length')
     expect(participantsPage).toContain('Inscrições recebidas')
     expect(participantsPage).toContain('item.enrollmentStatus ?? \'Não matriculado\'')
+  })
+
+  it('removes a participant through the protected panel flow and releases a test identity', () => {
+    expect(participantsPage).toContain('Remover participante')
+    expect(participantDeleteApi).toContain('requireCourseManager(event, courseId)')
+    expect(participantDeleteApi).toContain('admin.rpc(\'admin_remove_course_participant\'')
+    expect(participantDeleteApi).toContain('admin.auth.admin.deleteUser(result.user_id)')
+    expect(participantRemovalMigration).toContain('where id = target_order_id and course_id = target_course_id')
+    expect(participantRemovalMigration).toContain('delete from public.registration_contacts')
+    expect(participantRemovalMigration).toContain('p.role = \'STUDENT\'')
+    expect(participantRemovalMigration).toContain('grant execute on function public.admin_remove_course_participant(uuid, uuid) to service_role')
   })
 
   it('checks active ownership before creating temporary material links', () => {
