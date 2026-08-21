@@ -22,6 +22,17 @@ describe('transparent payment', () => {
     expect(page).toContain('if (checkout.value?.has_open_pix) { void pay() }')
     expect(page).toContain('!checkout?.has_open_pix')
   })
+  it('keeps address fields out of the form and sends fixed provider values from the server', () => {
+    const page = readFileSync('app/pages/pagamento/[reference].vue', 'utf8')
+    const endpoint = readFileSync('server/api/payments/[reference]/card.post.ts', 'utf8')
+    expect(page).not.toContain('CEP do titular')
+    expect(page).not.toContain('Número do endereço')
+    expect(page).not.toContain('postal_code')
+    expect(page).not.toContain('address_number')
+    expect(endpoint).not.toContain('postal_code: z.string()')
+    expect(endpoint).not.toContain('address_number: z.string()')
+    expect(endpoint).toContain('postalCode: \'64000000\', addressNumber: \'10\'')
+  })
   it('refreshes the order until payment is confirmed and presents first-access instructions', () => {
     const page = readFileSync('app/pages/pagamento/[reference].vue', 'utf8')
     expect(page).toContain('`/api/payments/${reference}/sync`')

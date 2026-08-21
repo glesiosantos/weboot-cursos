@@ -3,11 +3,12 @@ const route = useRoute()
 const reference = encodeURIComponent(String(route.params.reference))
 type Price = { base: number, providerFee: number, serviceFee: number, total: number, installments: number }
 type PixResponse = { encodedImage: string, payload: string, expirationDate?: string }
-const { data: checkout, refresh: refreshCheckout } = await useFetch<{ status: string, has_open_pix: boolean, course_title: string, expires_at: string, prices: { pix: Price, card: Price[] } }>(`/api/payments/${reference}`)
+type Checkout = { status: string, has_open_pix: boolean, course_title: string, expires_at: string, prices: { pix: Price, card: Price[] } }
+const { data: checkout, refresh: refreshCheckout } = await useFetch<Checkout>(`/api/payments/${reference}`)
 if (!checkout.value) { throw createError({ statusCode: 404, statusMessage: 'Pagamento não encontrado' }) }
 
 const method = ref<'PIX' | 'CREDIT_CARD'>('PIX')
-const card = reactive({ holder_name: '', number: '', expiry_month: '', expiry_year: '', ccv: '', postal_code: '', address_number: '', installments: 1 })
+const card = reactive({ holder_name: '', number: '', expiry_month: '', expiry_year: '', ccv: '', installments: 1 })
 const loading = ref(false)
 const errorMessage = ref('')
 const pix = ref<{ encodedImage: string, payload: string, expirationDate?: string } | null>(null)
@@ -160,22 +161,6 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
                 type="password"
                 inputmode="numeric"
                 autocomplete="cc-csc"
-                class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-              ></label>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              <label class="block font-bold">CEP do titular<input
-                v-model="card.postal_code"
-                required
-                placeholder="00000-000"
-                inputmode="numeric"
-                autocomplete="postal-code"
-                class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-              ></label>
-              <label class="block font-bold">Número do endereço<input
-                v-model="card.address_number"
-                required
-                autocomplete="address-line2"
                 class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
               ></label>
             </div>
