@@ -11,6 +11,9 @@ type CourseDashboard = {
 const { data: dashboard, refresh, pending, error } = await useFetch<CourseDashboard>(`/api/admin/courses/${courseId}/participants`)
 const search = ref('')
 const status = ref<'TODOS' | 'PAID' | 'WAITING_PAYMENT' | 'PENDING' | 'EXPIRED' | 'CANCELED' | 'REFUNDED'>('TODOS')
+const removingId = ref<string | null>(null)
+const actionMessage = ref('')
+const actionError = ref('')
 const filtered = computed(() => (dashboard.value?.participants ?? []).filter((item) => {
   const term = search.value.trim().toLocaleLowerCase('pt-BR')
   const matchesTerm = !term || `${item.name} ${item.email} ${item.eventCredentials[0]?.code ?? ''}`.toLocaleLowerCase('pt-BR').includes(term)
@@ -20,6 +23,23 @@ const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'curren
 const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value))
 const resend = async (enrollmentId: string, type: 'ENROLLMENT_CONFIRMATION' | 'EVENT_CREDENTIAL') => {
   await $fetch(`/api/admin/courses/${courseId}/participants/${enrollmentId}/notify`, { method: 'POST', body: { type } })
+}
+const removeParticipant = async (participant: Participant) => {
+  if (!window.confirm(`Remover ${participant.name}? A inscrição, o pagamento, a matrícula e os dados de teste deste curso serão excluídos. Esta ação não pode ser desfeita.`)) { return }
+  removingId.value = participant.id
+  actionMessage.value = ''
+  actionError.value = ''
+  try {
+    await $fetch(`/api/admin/courses/${courseId}/participants/${participant.id}`, { method: 'DELETE' })
+    actionMessage.value = `${participant.name} foi removido. O email e o CPF podem ser usados em uma nova inscrição.`
+    await refresh()
+  }
+  catch (error) {
+    actionError.value = apiErrorMessage(error, 'Não foi possível remover o participante.')
+  }
+  finally {
+    removingId.value = null
+  }
 }
 const cards = computed(() => [
   { label: 'Inscrições recebidas', value: String(dashboard.value?.summary.registrations ?? 0) },
@@ -119,6 +139,20 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
         </option>
       </select>
     </div>
+    <p
+      v-if="actionMessage"
+      role="status"
+      class="mt-4 rounded-xl bg-green-50 p-4 text-sm font-bold text-green-800"
+    >
+      {{ actionMessage }}
+    </p>
+    <p
+      v-if="actionError"
+      role="alert"
+      class="mt-4 rounded-xl bg-red-50 p-4 text-sm font-bold text-danger"
+    >
+      {{ actionError }}
+    </p>
     <div class="mt-5 overflow-x-auto rounded-card border border-border bg-white">
       <table class="w-full min-w-[1050px] text-left text-sm">
         <thead class="bg-canvas text-xs uppercase text-muted">
@@ -158,6 +192,12 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
                   @click="resend(item.enrollmentId, 'EVENT_CREDENTIAL')"
                 >
                   Reenviar credencial
+                </button><button
+                  class="text-xs font-bold text-danger underline disabled:cursor-wait disabled:opacity-60"
+                  :disabled="removingId === item.id"
+                  @click="removeParticipant(item)"
+                >
+                  {{ removingId === item.id ? 'Removendo…' : 'Remover participante' }}
                 </button>
               </div>
             </td>
