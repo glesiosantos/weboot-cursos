@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const dashboardApi = readFileSync('server/api/admin/dashboard.get.ts', 'utf8')
+const participantsApi = readFileSync('server/api/admin/courses/[id]/participants.get.ts', 'utf8')
+const participantsPage = readFileSync('app/pages/admin/cursos/[id]/inscritos.vue', 'utf8')
 const studentCourseApi = readFileSync('server/api/student/courses/[enrollmentId].get.ts', 'utf8')
 const materialDeleteApi = readFileSync('server/api/admin/courses/[id]/materials/[materialId].delete.ts', 'utf8')
 const studentCoursePage = readFileSync('app/pages/aluno/cursos/[enrollmentId].vue', 'utf8')
@@ -11,6 +13,15 @@ describe('sales dashboard and student materials', () => {
     expect(dashboardApi).toContain('requireRole(event, [\'ADMIN\'])')
     expect(dashboardApi).toContain('order.status === \'PAID\'')
     expect(dashboardApi).toContain('averageTicket')
+  })
+
+  it('shows every course registration before or after enrollment', () => {
+    expect(participantsApi).toContain('client.from(\'orders\')')
+    expect(participantsApi).toContain('registration_contacts(full_name,email)')
+    expect(participantsApi).toContain('enrollmentId: enrollment?.id ?? null')
+    expect(participantsApi).toContain('registrations: participants.length')
+    expect(participantsPage).toContain('Inscrições recebidas')
+    expect(participantsPage).toContain('item.enrollmentStatus ?? \'Não matriculado\'')
   })
 
   it('checks active ownership before creating temporary material links', () => {

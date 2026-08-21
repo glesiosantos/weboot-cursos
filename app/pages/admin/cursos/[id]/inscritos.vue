@@ -2,19 +2,19 @@
 definePageMeta({ layout: 'admin', middleware: ['auth', 'staff'] })
 const route = useRoute()
 const courseId = String(route.params.id)
-type Participant = { id: string, email: string, status: string, enrolled_at: string, profiles: { name: string } | null, orders: { status: string, total: number } | null, event_credentials: { code: string, status: string }[], attendance: { status: string }[] }
+type Participant = { id: string, enrollmentId: string | null, name: string, email: string, registeredAt: string, paymentStatus: string, total: number, enrollmentStatus: string | null, eventCredentials: { code: string, status: string }[], attendance: { status: string }[] }
 type CourseDashboard = {
   course: { id: string, title: string, course_type: string, status: string }
-  summary: { enrolled: number, paid: number, pending: number, revenue: number, credentials: number, checkedIn: number, batchSales: Record<string, number> }
+  summary: { registrations: number, enrolled: number, paid: number, pending: number, revenue: number, credentials: number, checkedIn: number, batchSales: Record<string, number> }
   participants: Participant[]
 }
 const { data: dashboard, refresh, pending, error } = await useFetch<CourseDashboard>(`/api/admin/courses/${courseId}/participants`)
 const search = ref('')
-const status = ref<'TODOS' | 'ACTIVE' | 'PENDING' | 'CANCELED'>('TODOS')
+const status = ref<'TODOS' | 'PAID' | 'WAITING_PAYMENT' | 'PENDING' | 'EXPIRED' | 'CANCELED' | 'REFUNDED'>('TODOS')
 const filtered = computed(() => (dashboard.value?.participants ?? []).filter((item) => {
   const term = search.value.trim().toLocaleLowerCase('pt-BR')
-  const matchesTerm = !term || `${item.profiles?.name ?? ''} ${item.email} ${item.event_credentials?.[0]?.code ?? ''}`.toLocaleLowerCase('pt-BR').includes(term)
-  return matchesTerm && (status.value === 'TODOS' || item.status === status.value)
+  const matchesTerm = !term || `${item.name} ${item.email} ${item.eventCredentials[0]?.code ?? ''}`.toLocaleLowerCase('pt-BR').includes(term)
+  return matchesTerm && (status.value === 'TODOS' || item.paymentStatus === status.value)
 }))
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value))
@@ -22,6 +22,7 @@ const resend = async (enrollmentId: string, type: 'ENROLLMENT_CONFIRMATION' | 'E
   await $fetch(`/api/admin/courses/${courseId}/participants/${enrollmentId}/notify`, { method: 'POST', body: { type } })
 }
 const cards = computed(() => [
+  { label: 'Inscrições recebidas', value: String(dashboard.value?.summary.registrations ?? 0) },
   { label: 'Alunos ativos', value: String(dashboard.value?.summary.enrolled ?? 0) },
   { label: 'Receita confirmada', value: money(dashboard.value?.summary.revenue ?? 0) },
   { label: 'Pagamentos confirmados', value: String(dashboard.value?.summary.paid ?? 0) },
@@ -47,7 +48,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           {{ dashboard?.course.title ?? 'Alunos do curso' }}
         </h1>
         <p class="mt-2 text-muted">
-          Matrículas, pagamentos, credenciais e presença deste curso.
+          Inscrições, pagamentos, matrículas, credenciais e presença deste curso.
         </p>
       </div><div class="flex flex-wrap gap-3">
         <AppButton :to="`/admin/cursos/${courseId}/checkin`">
@@ -96,19 +97,25 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
       <label
         class="sr-only"
         for="enrollment-status"
-      >Situação da matrícula</label><select
+      >Situação do pagamento</label><select
         id="enrollment-status"
         v-model="status"
         class="field !mt-0 sm:max-w-56"
       >
         <option value="TODOS">
-          Todas as matrículas
-        </option><option value="ACTIVE">
-          Ativas
+          Todas as inscrições
+        </option><option value="PAID">
+          Pagas
+        </option><option value="WAITING_PAYMENT">
+          Aguardando pagamento
         </option><option value="PENDING">
-          Pendentes
+          Pagamento não iniciado
+        </option><option value="EXPIRED">
+          Expiradas
         </option><option value="CANCELED">
           Canceladas
+        </option><option value="REFUNDED">
+          Reembolsadas
         </option>
       </select>
     </div>
@@ -130,23 +137,25 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
             class="border-t border-border"
           >
             <td class="p-4 font-bold">
-              {{ item.profiles?.name || 'Aluno' }}
-            </td><td>{{ item.email }}</td><td>{{ date(item.enrolled_at) }}</td><td>{{ item.orders?.status ?? '—' }}</td><td><AppBadge>{{ item.status }}</AppBadge></td><td>{{ item.event_credentials?.[0]?.status ?? '—' }}</td><td>{{ item.attendance?.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
+              {{ item.name }}
+            </td><td>{{ item.email }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge></td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
               <div class="flex flex-wrap gap-2">
                 <AppButton
-                  v-if="item.event_credentials?.[0]?.status === 'ACTIVE'"
-                  :to="`/admin/cursos/${courseId}/checkin?codigo=${encodeURIComponent(item.event_credentials[0].code)}`"
+                  v-if="item.eventCredentials[0]?.status === 'ACTIVE'"
+                  :to="`/admin/cursos/${courseId}/checkin?codigo=${encodeURIComponent(item.eventCredentials[0].code)}`"
                   variant="secondary"
                 >
                   Entrada
                 </AppButton><button
+                  v-if="item.enrollmentId"
                   class="text-xs font-bold text-primary-700 underline"
-                  @click="resend(item.id, 'ENROLLMENT_CONFIRMATION')"
+                  @click="resend(item.enrollmentId, 'ENROLLMENT_CONFIRMATION')"
                 >
                   Reenviar confirmação
                 </button><button
+                  v-if="item.enrollmentId"
                   class="text-xs font-bold text-primary-700 underline"
-                  @click="resend(item.id, 'EVENT_CREDENTIAL')"
+                  @click="resend(item.enrollmentId, 'EVENT_CREDENTIAL')"
                 >
                   Reenviar credencial
                 </button>
@@ -158,7 +167,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
         v-if="!filtered.length && !pending"
         class="p-8 text-center text-muted"
       >
-        Nenhum aluno encontrado com os filtros selecionados.
+        Nenhuma inscrição encontrada com os filtros selecionados.
       </p>
     </div><button
       class="mt-4 text-sm font-bold text-primary-700"

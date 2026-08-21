@@ -21,6 +21,8 @@ export type HolderInput = {
   name: string
   email: string
   cpfCnpj: string
+  postalCode: string
+  addressNumber: string
   phone: string
   mobilePhone: string
 }
