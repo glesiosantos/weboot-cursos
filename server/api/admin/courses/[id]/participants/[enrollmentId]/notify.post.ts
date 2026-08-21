@@ -26,15 +26,23 @@ export default defineEventHandler(async (event) => {
     user: String(config.smtpUser || ''), password: String(config.smtpPassword || ''), from: String(config.smtpFrom || ''),
   })
   const details = Array.isArray(data.courses?.course_presential_details) ? data.courses.course_presential_details[0] : data.courses?.course_presential_details
+  const sentChannels: string[] = []
+  const skippedChannels: string[] = []
   for (const channel of ['EMAIL', 'WHATSAPP'] as const) {
     const destination = channel === 'EMAIL' ? registration.email : registration.whatsapp
     const input = { userId: data.user_id, registrationId, channel, destination, participantName: data.profiles?.name ?? 'Aluno',
       courseTitle: data.courses?.title ?? 'Curso', startsAt: details?.starts_at, location: details?.location_name,
       credentialUrl: `${String(config.public.appUrl).replace(/\/$/, '')}/aluno/eventos` }
     const sent = body.data.type === 'EVENT_CREDENTIAL' ? await provider.sendEventCredential(input) : await provider.sendEnrollmentConfirmation(input)
-    await admin.from('notification_logs').insert({ user_id: data.user_id, registration_id: registrationId, channel, type: body.data.type,
+    const { error: logError } = await admin.from('notification_logs').insert({ user_id: data.user_id, registration_id: registrationId, channel, type: body.data.type,
       destination_masked: maskDestination(channel, destination), status: sent.skipped ? 'SKIPPED' : 'SENT', external_id: sent.id,
       sent_at: sent.skipped ? null : new Date().toISOString() })
+    if (logError) { throw createError({ statusCode: 500, statusMessage: 'A notificação foi processada, mas o resultado não pôde ser registrado' }) }
+    if (sent.skipped) { skippedChannels.push(channel) }
+    else { sentChannels.push(channel) }
   }
-  return { sent: true }
+  if (!sentChannels.length) {
+    throw createError({ statusCode: 503, statusMessage: 'Nenhum canal de notificação está configurado' })
+  }
+  return { sent: true, sentChannels, skippedChannels }
 })

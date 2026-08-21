@@ -12,6 +12,7 @@ const { data: dashboard, refresh, pending, error } = await useFetch<CourseDashbo
 const search = ref('')
 const status = ref<'TODOS' | 'PAID' | 'WAITING_PAYMENT' | 'PENDING' | 'EXPIRED' | 'CANCELED' | 'REFUNDED'>('TODOS')
 const removingId = ref<string | null>(null)
+const notifyingId = ref<string | null>(null)
 const actionMessage = ref('')
 const actionError = ref('')
 const filtered = computed(() => (dashboard.value?.participants ?? []).filter((item) => {
@@ -22,7 +23,22 @@ const filtered = computed(() => (dashboard.value?.participants ?? []).filter((it
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value))
 const resend = async (enrollmentId: string, type: 'ENROLLMENT_CONFIRMATION' | 'EVENT_CREDENTIAL') => {
-  await $fetch(`/api/admin/courses/${courseId}/participants/${enrollmentId}/notify`, { method: 'POST', body: { type } })
+  notifyingId.value = enrollmentId
+  actionMessage.value = ''
+  actionError.value = ''
+  try {
+    const result = await $fetch<{ sentChannels: string[], skippedChannels: string[] }>(`/api/admin/courses/${courseId}/participants/${enrollmentId}/notify`, { method: 'POST', body: { type } })
+    const channels = result.sentChannels.map(channel => channel === 'EMAIL' ? 'e-mail' : 'WhatsApp').join(' e ')
+    const label = type === 'EVENT_CREDENTIAL' ? 'Credencial' : 'Confirmação'
+    actionMessage.value = `${label} reenviada por ${channels}.`
+    if (result.skippedChannels.includes('WHATSAPP')) { actionMessage.value += ' WhatsApp não está configurado.' }
+  }
+  catch (error) {
+    actionError.value = apiErrorMessage(error, 'Não foi possível reenviar a notificação.')
+  }
+  finally {
+    notifyingId.value = null
+  }
 }
 const removeParticipant = async (participant: Participant) => {
   if (!window.confirm(`Remover ${participant.name}? A inscrição, o pagamento, a matrícula e os dados de teste deste curso serão excluídos. Esta ação não pode ser desfeita.`)) { return }
@@ -183,15 +199,17 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
                 </AppButton><button
                   v-if="item.enrollmentId"
                   class="text-xs font-bold text-primary-700 underline"
+                  :disabled="notifyingId === item.enrollmentId"
                   @click="resend(item.enrollmentId, 'ENROLLMENT_CONFIRMATION')"
                 >
-                  Reenviar confirmação
+                  {{ notifyingId === item.enrollmentId ? 'Enviando…' : 'Reenviar confirmação' }}
                 </button><button
                   v-if="item.enrollmentId"
                   class="text-xs font-bold text-primary-700 underline"
+                  :disabled="notifyingId === item.enrollmentId"
                   @click="resend(item.enrollmentId, 'EVENT_CREDENTIAL')"
                 >
-                  Reenviar credencial
+                  {{ notifyingId === item.enrollmentId ? 'Enviando…' : 'Reenviar credencial' }}
                 </button><button
                   class="text-xs font-bold text-danger underline disabled:cursor-wait disabled:opacity-60"
                   :disabled="removingId === item.id"
