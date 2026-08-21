@@ -5,6 +5,7 @@ const dashboardApi = readFileSync('server/api/admin/dashboard.get.ts', 'utf8')
 const participantsApi = readFileSync('server/api/admin/courses/[id]/participants.get.ts', 'utf8')
 const participantsPage = readFileSync('app/pages/admin/cursos/[id]/inscritos.vue', 'utf8')
 const participantDeleteApi = readFileSync('server/api/admin/courses/[id]/participants/[orderId].delete.ts', 'utf8')
+const participantNotifyApi = readFileSync('server/api/admin/courses/[id]/participants/[enrollmentId]/notify.post.ts', 'utf8')
 const participantRemovalMigration = readFileSync('supabase/migrations/20260821000100_admin_remove_course_participant.sql', 'utf8')
 const studentCourseApi = readFileSync('server/api/student/courses/[enrollmentId].get.ts', 'utf8')
 const materialDeleteApi = readFileSync('server/api/admin/courses/[id]/materials/[materialId].delete.ts', 'utf8')
@@ -35,6 +36,14 @@ describe('sales dashboard and student materials', () => {
     expect(participantRemovalMigration).toContain('delete from public.registration_contacts')
     expect(participantRemovalMigration).toContain('p.role = \'STUDENT\'')
     expect(participantRemovalMigration).toContain('grant execute on function public.admin_remove_course_participant(uuid, uuid) to service_role')
+  })
+
+  it('reports the channels that actually resent a participant notification', () => {
+    expect(participantNotifyApi).toContain('return { sent: true, sentChannels, skippedChannels }')
+    expect(participantNotifyApi).toContain('Nenhum canal de notificação está configurado')
+    expect(participantsPage).toContain('type === \'EVENT_CREDENTIAL\' ? \'Credencial\' : \'Confirmação\'')
+    expect(participantsPage).toContain('`${label} reenviada por ${channels}.`')
+    expect(participantsPage).toContain('WhatsApp não está configurado')
   })
 
   it('checks active ownership before creating temporary material links', () => {
