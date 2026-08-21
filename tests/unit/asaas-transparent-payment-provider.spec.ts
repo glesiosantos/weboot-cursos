@@ -34,6 +34,17 @@ describe('AsaasTransparentPaymentProvider', () => {
     expect(fetchMock.mock.calls[1]![1]).not.toHaveProperty('body')
   })
 
+  it('retrieves a payment status without a GET body', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'pay_pix', status: 'RECEIVED', value: 100, externalReference: 'order-1' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const provider = new AsaasTransparentPaymentProvider('https://api.asaas.com/v3', 'key')
+
+    await provider.getPayment('pay_pix')
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.asaas.com/v3/payments/pay_pix', expect.objectContaining({ method: 'GET' }))
+    expect(fetchMock.mock.calls[0]![1]).not.toHaveProperty('body')
+  })
+
   it('sends the total and installment count for card processing', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'pay_card', status: 'CONFIRMED' }) })
     vi.stubGlobal('fetch', fetchMock)

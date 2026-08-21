@@ -24,7 +24,8 @@ describe('transparent payment', () => {
   })
   it('refreshes the order until payment is confirmed and presents first-access instructions', () => {
     const page = readFileSync('app/pages/pagamento/[reference].vue', 'utf8')
-    expect(page).toContain('setInterval(() => { void refreshPaymentStatus() }, 3000)')
+    expect(page).toContain('`/api/payments/${reference}/sync`')
+    expect(page).toContain('setInterval(() => { void refreshPaymentStatus() }, 5000)')
     expect(page).toContain('checkout.value?.status === \'PAID\'')
     expect(page).toContain('Pagamento realizado com sucesso!')
     expect(page).toContain('instruções de primeiro acesso')

@@ -1,6 +1,6 @@
 type AsaasError = { errors?: { description?: string }[] }
 type AsaasCustomer = AsaasError & { id?: string }
-type AsaasPayment = AsaasError & { id?: string, status?: string, installment?: string }
+type AsaasPayment = AsaasError & { id?: string, status?: string, installment?: string, externalReference?: string, value?: number }
 type PixQrCode = AsaasError & { encodedImage?: string, payload?: string, expirationDate?: string }
 
 export type CustomerInput = {
@@ -68,6 +68,12 @@ export class AsaasTransparentPaymentProvider {
     const payload = await this.request<PixQrCode>(`/payments/${encodeURIComponent(paymentId)}/pixQrCode`, { method: 'GET' })
     if (!payload.encodedImage || !payload.payload) { throw createError({ statusCode: 502, statusMessage: 'QR Code Pix indisponível' }) }
     return payload
+  }
+
+  async getPayment(paymentId: string) {
+    const payload = await this.request<AsaasPayment>(`/payments/${encodeURIComponent(paymentId)}`, { method: 'GET' })
+    if (!payload.id || !payload.status) { throw createError({ statusCode: 502, statusMessage: 'Resposta inválida ao consultar pagamento' }) }
+    return { ...payload, id: payload.id, status: payload.status }
   }
 
   async createCardPayment(input: {

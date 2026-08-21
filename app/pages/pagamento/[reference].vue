@@ -37,6 +37,12 @@ const pay = async () => {
 const copyPix = async () => { if (pix.value?.payload) { await navigator.clipboard.writeText(pix.value.payload) } }
 let paymentStatusTimer: ReturnType<typeof setInterval> | undefined
 const refreshPaymentStatus = async () => {
+  try {
+    await $fetch(`/api/payments/${reference}/sync`, { method: 'POST' })
+  }
+  catch {
+    // O webhook continua sendo a fonte principal; uma consulta pontual pode falhar temporariamente.
+  }
   await refreshCheckout()
   if (paymentConfirmed.value && paymentStatusTimer) {
     clearInterval(paymentStatusTimer)
@@ -46,7 +52,7 @@ const refreshPaymentStatus = async () => {
 onMounted(() => {
   if (checkout.value?.has_open_pix) { void pay() }
   if (!paymentConfirmed.value) {
-    paymentStatusTimer = setInterval(() => { void refreshPaymentStatus() }, 3000)
+    paymentStatusTimer = setInterval(() => { void refreshPaymentStatus() }, 5000)
   }
 })
 onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTimer) } })
