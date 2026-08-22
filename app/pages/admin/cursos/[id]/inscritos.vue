@@ -22,15 +22,15 @@ const filtered = computed(() => (dashboard.value?.participants ?? []).filter((it
 }))
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value))
-const resend = async (enrollmentId: string, type: 'ENROLLMENT_CONFIRMATION' | 'EVENT_CREDENTIAL') => {
+const resend = async (enrollmentId: string, type: 'ENROLLMENT_CONFIRMATION' | 'EVENT_CREDENTIAL' | 'PASSWORD_SETUP') => {
   notifyingId.value = enrollmentId
   actionMessage.value = ''
   actionError.value = ''
   try {
     const result = await $fetch<{ sentChannels: string[], skippedChannels: string[] }>(`/api/admin/courses/${courseId}/participants/${enrollmentId}/notify`, { method: 'POST', body: { type } })
     const channels = result.sentChannels.map(channel => channel === 'EMAIL' ? 'e-mail' : 'WhatsApp').join(' e ')
-    const label = type === 'EVENT_CREDENTIAL' ? 'Credencial' : 'Confirmação'
-    actionMessage.value = `${label} reenviada por ${channels}.`
+    const label = type === 'EVENT_CREDENTIAL' ? 'Credencial reenviada' : type === 'PASSWORD_SETUP' ? 'Primeiro acesso reenviado' : 'Confirmação reenviada'
+    actionMessage.value = `${label} por ${channels}.`
     if (result.skippedChannels.includes('WHATSAPP')) { actionMessage.value += ' WhatsApp não está configurado.' }
   }
   catch (error) {
@@ -203,6 +203,13 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
                   @click="resend(item.enrollmentId, 'ENROLLMENT_CONFIRMATION')"
                 >
                   {{ notifyingId === item.enrollmentId ? 'Enviando…' : 'Reenviar confirmação' }}
+                </button><button
+                  v-if="item.enrollmentId"
+                  class="text-xs font-bold text-primary-700 underline"
+                  :disabled="notifyingId === item.enrollmentId"
+                  @click="resend(item.enrollmentId, 'PASSWORD_SETUP')"
+                >
+                  {{ notifyingId === item.enrollmentId ? 'Enviando…' : 'Reenviar primeiro acesso' }}
                 </button><button
                   v-if="item.enrollmentId"
                   class="text-xs font-bold text-primary-700 underline"

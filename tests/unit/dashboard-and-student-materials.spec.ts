@@ -41,9 +41,19 @@ describe('sales dashboard and student materials', () => {
   it('reports the channels that actually resent a participant notification', () => {
     expect(participantNotifyApi).toContain('return { sent: true, sentChannels, skippedChannels }')
     expect(participantNotifyApi).toContain('Nenhum canal de notificação está configurado')
-    expect(participantsPage).toContain('type === \'EVENT_CREDENTIAL\' ? \'Credencial\' : \'Confirmação\'')
-    expect(participantsPage).toContain('`${label} reenviada por ${channels}.`')
+    expect(participantsPage).toContain('\'Primeiro acesso reenviado\'')
+    expect(participantsPage).toContain('`${label} por ${channels}.`')
     expect(participantsPage).toContain('WhatsApp não está configurado')
+  })
+
+  it('generates and emails a new temporary password when first access is resent', () => {
+    expect(participantNotifyApi).toContain('z.enum([\'ENROLLMENT_CONFIRMATION\', \'EVENT_CREDENTIAL\', \'PASSWORD_SETUP\'])')
+    expect(participantNotifyApi).toContain('randomBytes(18).toString(\'base64url\')')
+    expect(participantNotifyApi).toContain('admin.auth.admin.updateUserById')
+    expect(participantNotifyApi).toContain('must_change_password: true')
+    expect(participantNotifyApi).toContain('provider.sendPasswordSetup')
+    expect(participantsPage).toContain('resend(item.enrollmentId, \'PASSWORD_SETUP\')')
+    expect(participantsPage).toContain('Reenviar primeiro acesso')
   })
 
   it('checks active ownership before creating temporary material links', () => {

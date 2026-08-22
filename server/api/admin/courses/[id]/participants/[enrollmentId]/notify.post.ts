@@ -1,9 +1,10 @@
+import { randomBytes } from 'node:crypto'
 import { z } from 'zod'
 import { serverSupabaseServiceRole } from '#supabase/server'
 import { requireCourseManager } from '../../../../../../utils/auth'
 import { maskDestination, RoutedNotificationProvider } from '../../../../../../services/notification-provider'
 
-const schema = z.object({ type: z.enum(['ENROLLMENT_CONFIRMATION', 'EVENT_CREDENTIAL']) }).strict()
+const schema = z.object({ type: z.enum(['ENROLLMENT_CONFIRMATION', 'EVENT_CREDENTIAL', 'PASSWORD_SETUP']) }).strict()
 
 export default defineEventHandler(async (event) => {
   const courseId = getRouterParam(event, 'id') || ''
@@ -28,6 +29,29 @@ export default defineEventHandler(async (event) => {
   const details = Array.isArray(data.courses?.course_presential_details) ? data.courses.course_presential_details[0] : data.courses?.course_presential_details
   const sentChannels: string[] = []
   const skippedChannels: string[] = []
+  if (body.data.type === 'PASSWORD_SETUP') {
+    const initialPassword = randomBytes(18).toString('base64url')
+    const { data: authData, error: authError } = await admin.auth.admin.getUserById(data.user_id)
+    if (authError || !authData.user) { throw createError({ statusCode: 500, statusMessage: 'Conta do aluno não encontrada' }) }
+    const { error: updateError } = await admin.auth.admin.updateUserById(data.user_id, {
+      password: initialPassword,
+      app_metadata: { ...authData.user.app_metadata, role: 'STUDENT', must_change_password: true },
+    })
+    if (updateError) { throw createError({ statusCode: 500, statusMessage: 'Não foi possível gerar uma nova senha temporária' }) }
+    const sent = await provider.sendPasswordSetup({
+      userId: data.user_id, registrationId, channel: 'EMAIL', destination: registration.email,
+      participantName: data.profiles?.name ?? 'Aluno', courseTitle: data.courses?.title ?? 'Curso',
+      passwordSetupUrl: `${String(config.public.appUrl).replace(/\/$/, '')}/login`, initialPassword,
+    })
+    const { error: logError } = await admin.from('notification_logs').insert({
+      user_id: data.user_id, registration_id: registrationId, channel: 'EMAIL', type: body.data.type,
+      destination_masked: maskDestination('EMAIL', registration.email), status: sent.skipped ? 'SKIPPED' : 'SENT', external_id: sent.id,
+      sent_at: sent.skipped ? null : new Date().toISOString(),
+    })
+    if (logError) { throw createError({ statusCode: 500, statusMessage: 'O primeiro acesso foi processado, mas o resultado não pôde ser registrado' }) }
+    if (sent.skipped) { throw createError({ statusCode: 503, statusMessage: 'O envio de e-mail não está configurado' }) }
+    return { sent: true, sentChannels: ['EMAIL'], skippedChannels: [] }
+  }
   for (const channel of ['EMAIL', 'WHATSAPP'] as const) {
     const destination = channel === 'EMAIL' ? registration.email : registration.whatsapp
     const input = { userId: data.user_id, registrationId, channel, destination, participantName: data.profiles?.name ?? 'Aluno',
