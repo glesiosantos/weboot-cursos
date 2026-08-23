@@ -169,7 +169,93 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
     >
       {{ actionError }}
     </p>
-    <div class="mt-5 overflow-x-auto rounded-card border border-border bg-white">
+    <div class="mt-5 grid gap-4 md:hidden">
+      <article
+        v-for="item in filtered"
+        :key="item.id"
+        class="min-w-0 rounded-card border border-border bg-white p-4"
+      >
+        <div class="flex flex-wrap items-start justify-between gap-2">
+          <div class="min-w-0">
+            <h2 class="font-black">
+              {{ item.name }}
+            </h2>
+            <p class="mt-1 break-all text-sm text-muted">
+              {{ item.email }}
+            </p>
+          </div><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge>
+        </div>
+        <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <dt class="font-bold text-muted">
+              Inscrição
+            </dt><dd>{{ date(item.registeredAt) }}</dd>
+          </div>
+          <div>
+            <dt class="font-bold text-muted">
+              Pagamento
+            </dt><dd>{{ item.paymentStatus }}</dd>
+          </div>
+          <div>
+            <dt class="font-bold text-muted">
+              Credencial
+            </dt><dd>{{ item.eventCredentials[0]?.status ?? '—' }}</dd>
+          </div>
+          <div>
+            <dt class="font-bold text-muted">
+              Check-in
+            </dt><dd>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</dd>
+          </div>
+        </dl>
+        <div class="mt-4 flex flex-col items-start gap-3 border-t border-border pt-4">
+          <AppButton
+            v-if="item.eventCredentials[0]?.status === 'ACTIVE'"
+            :to="`/admin/cursos/${courseId}/checkin?codigo=${encodeURIComponent(item.eventCredentials[0].code)}`"
+            variant="secondary"
+          >
+            Entrada
+          </AppButton>
+          <button
+            v-if="item.enrollmentId"
+            class="text-left text-xs font-bold text-primary-700 underline"
+            :disabled="notifyingId === item.enrollmentId"
+            @click="resend(item.enrollmentId, 'ENROLLMENT_CONFIRMATION')"
+          >
+            Reenviar confirmação
+          </button>
+          <button
+            v-if="item.enrollmentId"
+            class="text-left text-xs font-bold text-primary-700 underline"
+            :disabled="notifyingId === item.enrollmentId"
+            @click="resend(item.enrollmentId, 'PASSWORD_SETUP')"
+          >
+            Reenviar primeiro acesso
+          </button>
+          <button
+            v-if="item.enrollmentId"
+            class="text-left text-xs font-bold text-primary-700 underline"
+            :disabled="notifyingId === item.enrollmentId"
+            @click="resend(item.enrollmentId, 'EVENT_CREDENTIAL')"
+          >
+            Reenviar credencial
+          </button>
+          <button
+            class="text-left text-xs font-bold text-danger underline disabled:opacity-60"
+            :disabled="removingId === item.id"
+            @click="removeParticipant(item)"
+          >
+            {{ removingId === item.id ? 'Removendo…' : 'Remover participante' }}
+          </button>
+        </div>
+      </article>
+      <p
+        v-if="!filtered.length && !pending"
+        class="rounded-card border border-border bg-white p-8 text-center text-muted"
+      >
+        Nenhuma inscrição encontrada com os filtros selecionados.
+      </p>
+    </div>
+    <div class="mt-5 hidden overflow-x-auto rounded-card border border-border bg-white md:block">
       <table class="w-full min-w-[1050px] text-left text-sm">
         <thead class="bg-canvas text-xs uppercase text-muted">
           <tr>
