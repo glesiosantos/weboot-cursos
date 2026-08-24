@@ -53,7 +53,10 @@ export class AsaasTransparentPaymentProvider {
   }
 
   async createCustomer(input: CustomerInput) {
-    const payload = await this.request<AsaasCustomer>('/customers', { method: 'POST', body: JSON.stringify(input) })
+    const payload = await this.request<AsaasCustomer>('/customers', {
+      method: 'POST',
+      body: JSON.stringify({ ...input, notificationDisabled: true }),
+    })
     if (!payload.id) { throw createError({ statusCode: 502, statusMessage: 'Resposta inválida ao cadastrar pagador' }) }
     return payload.id
   }

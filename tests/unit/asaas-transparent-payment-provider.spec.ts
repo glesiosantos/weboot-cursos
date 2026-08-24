@@ -20,6 +20,26 @@ describe('AsaasTransparentPaymentProvider', () => {
       .toThrow(expect.objectContaining({ statusMessage: 'URL da API Asaas não permitida' }))
   })
 
+  it('creates customers with Asaas notifications disabled', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ id: 'cus_1' }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const provider = new AsaasTransparentPaymentProvider('https://api-sandbox.asaas.com/v3', 'key')
+
+    await provider.createCustomer({
+      name: 'Maria Silva',
+      cpfCnpj: '52998224725',
+      email: 'maria@example.com',
+      mobilePhone: '5586999999999',
+      externalReference: 'registration-1',
+    })
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api-sandbox.asaas.com/v3/customers', expect.any(Object))
+    expect(JSON.parse(fetchMock.mock.calls[0]![1].body)).toMatchObject({
+      externalReference: 'registration-1',
+      notificationDisabled: true,
+    })
+  })
+
   it('creates a Pix payment and retrieves its QR Code without a GET body', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'pay_pix', status: 'PENDING' }) })

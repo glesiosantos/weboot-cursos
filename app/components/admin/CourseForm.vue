@@ -135,7 +135,7 @@ const removeFolder = async () => {
         </button>
       </template>
     </div>
-    <section class="rounded-card border border-border bg-white p-6">
+    <section class="rounded-card border border-border bg-white p-4 sm:p-6">
       <h2 class="text-xl font-black">
         Informações básicas
       </h2><div class="mt-5 grid gap-5 sm:grid-cols-2">
@@ -165,7 +165,7 @@ const removeFolder = async () => {
         /></label>
       </div>
     </section>
-    <section class="rounded-card border border-border bg-white p-6">
+    <section class="rounded-card border border-border bg-white p-4 sm:p-6">
       <h2 class="text-xl font-black">
         Instrutor e investimento
       </h2><div class="mt-5 grid gap-5 sm:grid-cols-3">
@@ -221,9 +221,9 @@ const removeFolder = async () => {
     </section>
     <section
       v-if="form.pricing_type === 'BATCHES'"
-      class="rounded-card border border-border bg-white p-6"
+      class="rounded-card border border-border bg-white p-4 sm:p-6"
     >
-      <div class="flex items-center justify-between gap-4">
+      <div class="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h2 class="text-xl font-black">
           Lotes de venda
         </h2><AppButton
@@ -247,10 +247,10 @@ const removeFolder = async () => {
           :key="index"
           class="rounded-xl border border-border p-5"
         >
-          <div class="flex items-center justify-between">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 class="font-black">
               {{ batch.name || `${index + 1}º lote` }}
-            </h3><div class="flex gap-2">
+            </h3><div class="flex flex-wrap gap-2">
               <button
                 type="button"
                 class="rounded border px-3 py-1"
@@ -334,7 +334,7 @@ const removeFolder = async () => {
     </section>
     <section
       v-if="form.presential"
-      class="rounded-card border border-border bg-white p-6"
+      class="rounded-card border border-border bg-white p-4 sm:p-6"
     >
       <h2 class="text-xl font-black">
         Detalhes presenciais
@@ -375,7 +375,7 @@ const removeFolder = async () => {
         ></label>
       </div>
     </section>
-    <section class="rounded-card border border-border bg-white p-6">
+    <section class="rounded-card border border-border bg-white p-4 sm:p-6">
       <h2 class="text-xl font-black">
         Detalhes públicos
       </h2><div class="mt-5 grid gap-5">
@@ -396,7 +396,7 @@ const removeFolder = async () => {
     </section>
     <section
       v-if="courseId"
-      class="rounded-card border border-border bg-white p-6"
+      class="rounded-card border border-border bg-white p-4 sm:p-6"
     >
       <h2 class="text-xl font-black">
         Mídia do curso

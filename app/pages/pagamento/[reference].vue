@@ -61,7 +61,7 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
 
 <template>
   <main class="page-shell py-12">
-    <section class="mx-auto max-w-2xl rounded-card border border-border bg-white p-6 shadow-soft sm:p-9">
+    <section class="mx-auto max-w-2xl rounded-card border border-border bg-white p-4 shadow-soft sm:p-9">
       <div
         v-if="paymentConfirmed"
         class="text-center"
@@ -99,7 +99,7 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
 
         <div
           v-if="!checkout?.has_open_pix"
-          class="mt-8 grid grid-cols-2 gap-3"
+          class="mt-8 grid gap-3 sm:grid-cols-2"
         >
           <button
             type="button"
@@ -138,7 +138,7 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
               autocomplete="cc-number"
               class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
             ></label>
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid gap-3 sm:grid-cols-3">
               <label class="block font-bold">Mês<input
                 v-model="card.expiry_month"
                 required
