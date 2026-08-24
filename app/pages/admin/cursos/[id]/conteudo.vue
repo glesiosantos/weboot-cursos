@@ -75,10 +75,10 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
       <article
         v-for="(module, index) in data?.modules"
         :key="module.id"
-        class="rounded-card border border-border bg-white p-6"
+        class="rounded-card border border-border bg-white p-4 sm:p-6"
       >
-        <div class="flex items-center justify-between gap-4">
-          <div>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="min-w-0 flex-1">
             <p class="text-xs font-bold text-muted">
               MÓDULO {{ index + 1 }}
             </p><label
@@ -135,7 +135,7 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
               >Título da aula</label><input
                 :id="`lesson-name-${lesson.id}`"
                 v-model="lesson.title"
-                class="field !mt-0 min-w-48 flex-1"
+                class="field !mt-0 min-w-0 flex-1 basis-full sm:basis-auto"
               ><AppBadge v-if="lesson.is_preview">
                 Preview
               </AppBadge>
@@ -169,7 +169,7 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
             </div>
           </li>
         </ol><form
-          class="mt-4 flex gap-2"
+          class="mt-4 flex flex-col gap-2 sm:flex-row"
           @submit.prevent="addLesson(module.id)"
         >
           <label
@@ -189,7 +189,7 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
         </form>
       </article>
     </div><form
-      class="mt-6 flex max-w-xl gap-2"
+      class="mt-6 flex max-w-xl flex-col gap-2 sm:flex-row"
       @submit.prevent="addModule"
     >
       <label
@@ -205,7 +205,7 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
       </AppButton>
     </form>
     <form
-      class="mt-8 max-w-2xl rounded-card border border-border bg-white p-6"
+      class="mt-8 max-w-2xl rounded-card border border-border bg-white p-4 sm:p-6"
       @submit.prevent="uploadMaterial"
     >
       <h2 class="text-xl font-black">
@@ -237,7 +237,7 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
           <li
             v-for="material in data.materials"
             :key="material.id"
-            class="flex items-center justify-between gap-4 rounded-xl bg-canvas p-4"
+            class="flex flex-col items-start gap-3 rounded-xl bg-canvas p-4 sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
               <p class="font-bold">

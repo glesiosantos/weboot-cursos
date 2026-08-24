@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const open = ref(false)
 const links = [{ label: 'Início', to: '/' }, { label: 'Cursos', to: '/cursos' }, { label: 'Sobre', to: '/#sobre' }, { label: 'Certificados', to: '/certificados' }, { label: 'Blog', to: '/#blog' }]
+const route = useRoute()
+watch(() => route.fullPath, () => { open.value = false })
 </script>
 
 <template>
@@ -9,14 +11,16 @@ const links = [{ label: 'Início', to: '/' }, { label: 'Cursos', to: '/cursos' }
       class="page-shell flex h-18 items-center justify-between gap-3"
       aria-label="Principal"
     >
-      <AppLogo /><div class="hidden items-center gap-7 lg:flex">
+      <div class="min-w-0 shrink">
+        <AppLogo />
+      </div><div class="hidden items-center gap-7 lg:flex">
         <NuxtLink
           v-for="link in links"
           :key="link.label"
           :to="link.to"
           class="text-sm font-semibold text-muted hover:text-primary-700"
         >{{ link.label }}</NuxtLink>
-      </div><div class="ml-auto flex items-center gap-2 lg:ml-0">
+      </div><div class="ml-auto hidden items-center gap-2 sm:flex lg:ml-0">
         <div class="hidden lg:block">
           <AppButton
             to="/login"
@@ -28,7 +32,7 @@ const links = [{ label: 'Início', to: '/' }, { label: 'Cursos', to: '/cursos' }
           to="/cursos"
           class="px-3 sm:px-5"
         >
-          <span class="sm:hidden">Cursos</span><span class="hidden sm:inline">Explorar cursos</span>
+          Explorar cursos
         </AppButton>
       </div><button
         type="button"
