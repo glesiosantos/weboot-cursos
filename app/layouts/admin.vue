@@ -2,7 +2,7 @@
 const client = useSupabaseClient()
 const route = useRoute()
 const menuOpen = ref(false)
-const links = [{ l: 'Dashboard', i: '⌂', to: '/admin' }, { l: 'Cursos', i: '▤', to: '/admin/cursos' }, { l: 'Instrutores', i: '♙', to: '/admin/instrutores' }, { l: 'Alunos', i: '◎', to: '/admin/alunos' }, { l: 'Inscrições', i: '✓', to: '/admin/inscricoes' }, { l: 'Certificados', i: '◇', to: '/admin/certificados' }, { l: 'Configurações', i: '⚙', to: '/admin/configuracoes' }]
+const links = [{ l: 'Dashboard', i: '⌂', to: '/admin' }, { l: 'Cursos', i: '▤', to: '/admin/cursos' }, { l: 'Biblioteca', i: '▣', to: '/admin/biblioteca' }, { l: 'Instrutores', i: '♙', to: '/admin/instrutores' }, { l: 'Alunos', i: '◎', to: '/admin/alunos' }, { l: 'Inscrições', i: '✓', to: '/admin/inscricoes' }, { l: 'Certificados', i: '◇', to: '/admin/certificados' }, { l: 'Configurações', i: '⚙', to: '/admin/configuracoes' }]
 const logout = async () => {
   await client.auth.signOut()
   await navigateTo('/login')

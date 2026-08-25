@@ -1,6 +1,13 @@
 import { serverSupabaseServiceRole } from '#supabase/server'
 import { requireCourseManager } from '../../../../utils/auth'
 
+type PreparationProgress = {
+  enrollment_id: string
+  completed_at: string | null
+  completed_version: number | null
+  course_knowledge_items: { knowledge_version: number } | { knowledge_version: number }[] | null
+}
+
 export default defineEventHandler(async (event) => {
   const courseId = getRouterParam(event, 'id')!
   await requireCourseManager(event, courseId)
@@ -13,6 +20,15 @@ export default defineEventHandler(async (event) => {
     .eq('course_id', courseId).order('created_at')
   if (error) { throw createError({ statusCode: 500, statusMessage: 'Não foi possível consultar inscritos' }) }
   const { data: authUsers } = await client.auth.admin.listUsers({ perPage: 1000 })
+  const { data: requiredActivities } = await client.from('course_knowledge_items').select('id').eq('course_id', courseId).eq('is_required', true)
+  const activityIds = (requiredActivities ?? []).map((item: { id: string }) => item.id)
+  const enrollmentIds = (data ?? []).flatMap((order: { enrollments?: { id?: string } | { id?: string }[] }) => {
+    const enrollment = Array.isArray(order.enrollments) ? order.enrollments[0] : order.enrollments
+    return enrollment?.id ? [enrollment.id] : []
+  })
+  const { data: progressRows } = enrollmentIds.length && activityIds.length
+    ? await client.from('knowledge_progress').select('enrollment_id,course_knowledge_item_id,completed_at,completed_version,course_knowledge_items(knowledge_version)').in('enrollment_id', enrollmentIds).in('course_knowledge_item_id', activityIds)
+    : { data: [] }
   const emails = new Map(authUsers?.users?.map((user: { id: string, email?: string }) => [user.id, user.email ?? '']))
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const participants = (data ?? []).map((order: any) => {
@@ -30,6 +46,10 @@ export default defineEventHandler(async (event) => {
       enrollmentStatus: enrollment?.status ?? null,
       eventCredentials: enrollment?.event_credentials ?? [],
       attendance: enrollment?.attendance ?? [],
+      preparation: {
+        required: activityIds.length,
+        completed: ((progressRows ?? []) as PreparationProgress[]).filter(progress => progress.enrollment_id === enrollment?.id && progress.completed_at && progress.completed_version === (Array.isArray(progress.course_knowledge_items) ? progress.course_knowledge_items[0]?.knowledge_version : progress.course_knowledge_items?.knowledge_version)).length,
+      },
     }
   })
   if (getQuery(event).format === 'csv') {

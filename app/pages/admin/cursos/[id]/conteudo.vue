@@ -3,9 +3,22 @@ definePageMeta({ layout: 'admin', middleware: ['auth', 'admin'] })
 useSeoMeta({ title: 'Conteúdo do curso | Administração', robots: 'noindex' })
 const route = useRoute(); const id = String(route.params.id)
 const { data, refresh } = await useFetch(`/api/admin/courses/${id}/content`)
+type Knowledge = { id: string, title: string, content_type: string, version: number }
+type Assignment = { id: string, is_required: boolean, due_at: string | null, knowledge_items: Knowledge }
+const { data: knowledge, refresh: refreshKnowledge } = await useFetch<{ assigned: Assignment[], library: Knowledge[] }>(`/api/admin/courses/${id}/knowledge`)
 const moduleTitle = ref(''); const lessonTitles = reactive<Record<string, string>>({}); const errorMessage = ref('')
 const materialTitle = ref(''); const materialFile = ref<File | null>(null)
 const busy = ref<string | null>(null)
+const selectedKnowledge = ref(''); const activityRequired = ref(true); const activityDueAt = ref('')
+const addKnowledge = async () => {
+  if (!selectedKnowledge.value) { return }
+  try { await $fetch(`/api/admin/courses/${id}/knowledge`, { method: 'POST', body: { knowledgeItemId: selectedKnowledge.value, isRequired: activityRequired.value, isPreEvent: true, availableAt: null, dueAt: activityDueAt.value ? new Date(activityDueAt.value).toISOString() : null } }); selectedKnowledge.value = ''; activityDueAt.value = ''; await refreshKnowledge() }
+  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Não foi possível adicionar a atividade' }
+}
+const removeKnowledge = async (assignmentId: string) => {
+  if (!confirm('Remover esta atividade do curso? O material continuará disponível na biblioteca.')) { return }
+  await $fetch(`/api/admin/courses/${id}/knowledge/${assignmentId}`, { method: 'DELETE' }); await refreshKnowledge()
+}
 const addModule = async () => { if (!moduleTitle.value.trim()) { return } await $fetch(`/api/admin/courses/${id}/modules`, { method: 'POST', body: { title: moduleTitle.value } }); moduleTitle.value = ''; await refresh() }
 const addLesson = async (moduleId: string) => { const title = lessonTitles[moduleId]?.trim(); if (!title) { return } await $fetch(`/api/admin/modules/${moduleId}/lessons`, { method: 'POST', body: { title, lesson_type: 'TEXT', is_required: true, is_preview: false } }); lessonTitles[moduleId] = ''; await refresh() }
 const move = async (moduleIndex: number, direction: -1 | 1) => {
@@ -204,6 +217,80 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
         + Novo módulo
       </AppButton>
     </form>
+    <section class="mt-8 rounded-card border border-border bg-white p-4 sm:p-6">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 class="text-xl font-black">
+            Preparação para o evento
+          </h2><p class="mt-2 text-sm text-muted">
+            Associe conteúdos publicados e reutilizáveis da biblioteca.
+          </p>
+        </div><NuxtLink
+          to="/admin/biblioteca"
+          class="font-bold text-primary-700"
+        >Abrir biblioteca →</NuxtLink>
+      </div>
+      <form
+        class="mt-5 grid min-w-0 gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-end"
+        @submit.prevent="addKnowledge"
+      >
+        <label class="font-bold">Material<select
+          v-model="selectedKnowledge"
+          required
+          class="field"
+        ><option
+          value=""
+          disabled
+        >Selecione</option><option
+          v-for="item in knowledge?.library"
+          :key="item.id"
+          :value="item.id"
+        >{{ item.title }} · {{ item.content_type }}</option></select></label>
+        <label class="font-bold">Prazo<input
+          v-model="activityDueAt"
+          type="datetime-local"
+          class="field"
+        ></label>
+        <label class="flex min-h-11 items-center gap-2 font-bold"><input
+          v-model="activityRequired"
+          type="checkbox"
+        > Obrigatória</label><AppButton type="submit">
+          Adicionar
+        </AppButton>
+      </form>
+      <ul
+        v-if="knowledge?.assigned.length"
+        class="mt-6 space-y-3"
+      >
+        <li
+          v-for="assignment in knowledge.assigned"
+          :key="assignment.id"
+          class="flex flex-col gap-3 rounded-xl bg-canvas p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <p class="font-black">
+              {{ assignment.knowledge_items.title }}
+            </p><p class="mt-1 text-xs text-muted">
+              {{ assignment.knowledge_items.content_type }} · versão {{ assignment.knowledge_items.version }} · {{ assignment.is_required ? 'Obrigatória' : 'Opcional' }}<template v-if="assignment.due_at">
+                · até {{ new Date(assignment.due_at).toLocaleString('pt-BR') }}
+              </template>
+            </p>
+          </div><button
+            type="button"
+            class="font-bold text-danger"
+            @click="removeKnowledge(assignment.id)"
+          >
+            Remover do curso
+          </button>
+        </li>
+      </ul>
+      <p
+        v-else
+        class="mt-5 text-sm text-muted"
+      >
+        Nenhuma atividade pré-evento associada.
+      </p>
+    </section>
     <form
       class="mt-8 max-w-2xl rounded-card border border-border bg-white p-4 sm:p-6"
       @submit.prevent="uploadMaterial"

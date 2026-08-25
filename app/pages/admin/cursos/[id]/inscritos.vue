@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'admin', middleware: ['auth', 'staff'] })
 const route = useRoute()
 const courseId = String(route.params.id)
-type Participant = { id: string, enrollmentId: string | null, name: string, email: string, registeredAt: string, paymentStatus: string, total: number, enrollmentStatus: string | null, eventCredentials: { code: string, status: string }[], attendance: { status: string }[] }
+type Participant = { id: string, enrollmentId: string | null, name: string, email: string, registeredAt: string, paymentStatus: string, total: number, enrollmentStatus: string | null, eventCredentials: { code: string, status: string }[], attendance: { status: string }[], preparation: { required: number, completed: number } }
 type CourseDashboard = {
   course: { id: string, title: string, course_type: string, status: string }
   summary: { registrations: number, enrolled: number, paid: number, pending: number, revenue: number, credentials: number, checkedIn: number, batchSales: Record<string, number> }
@@ -206,6 +206,11 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
               Check-in
             </dt><dd>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</dd>
           </div>
+          <div>
+            <dt class="font-bold text-muted">
+              Preparação
+            </dt><dd>{{ item.preparation.completed }}/{{ item.preparation.required }}</dd>
+          </div>
         </dl>
         <div class="mt-4 flex flex-col items-start gap-3 border-t border-border pt-4">
           <AppButton
@@ -261,7 +266,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           <tr>
             <th class="p-4">
               Aluno
-            </th><th>Email</th><th>Inscrição</th><th>Pagamento</th><th>Matrícula</th><th>Credencial</th><th>Check-in</th><th class="p-4">
+            </th><th>Email</th><th>Inscrição</th><th>Pagamento</th><th>Matrícula</th><th>Preparação</th><th>Credencial</th><th>Check-in</th><th class="p-4">
               Ações
             </th>
           </tr>
@@ -274,7 +279,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           >
             <td class="p-4 font-bold">
               {{ item.name }}
-            </td><td>{{ item.email }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge></td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
+            </td><td>{{ item.email }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge></td><td>{{ item.preparation.completed }}/{{ item.preparation.required }}</td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
               <div class="flex flex-wrap gap-2">
                 <AppButton
                   v-if="item.eventCredentials[0]?.status === 'ACTIVE'"
