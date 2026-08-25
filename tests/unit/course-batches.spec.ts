@@ -6,6 +6,7 @@ import { courseBatchSchema, courseSchema } from '../../server/utils/course-valid
 const migration = [
   'supabase/migrations/20260811000300_course_batches.sql',
   'supabase/migrations/20260811000400_harden_course_batches.sql',
+  'supabase/migrations/20260825000100_advance_sold_out_course_batches.sql',
 ].map(path => readFileSync(resolve(path), 'utf8')).join('\n')
 const baseCourse = {
   title: 'Curso', slug: 'curso', short_description: 'Resumo', description: 'Descrição', course_type: 'ONLINE',
@@ -44,6 +45,13 @@ describe('course batches', () => {
     expect(migration).toContain('b.ends_at is null or b.ends_at > reference_at')
     expect(migration).toContain('b.starts_at > reference_at')
     expect(migration).toContain('order by b.position')
+  })
+
+  it('automatically advances past a batch whose sales capacity is occupied', () => {
+    expect(migration).toContain('r.status = \'CONFIRMED\'')
+    expect(migration).toContain('r.status = \'RESERVED\' and r.expires_at > reference_at')
+    expect(migration).toMatch(/b\.max_sales > \(\s*select count\(\*\)/)
+    expect(migration).toContain('order by case when b.status = \'ACTIVE\' then 0 else 1 end, b.position')
   })
 
   it('allows only admins to replace batches and preserves student read-only access', () => {
