@@ -12,7 +12,6 @@ export default defineEventHandler(async (event) => {
     expires_at: order.expires_at,
     prices: {
       pix: paymentPrice(base, 'PIX', 1, config),
-      card: Array.from({ length: 6 }, (_, index) => paymentPrice(base, 'CREDIT_CARD', index + 1, config)),
     },
   }
 })

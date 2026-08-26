@@ -3,31 +3,21 @@ const route = useRoute()
 const reference = encodeURIComponent(String(route.params.reference))
 type Price = { base: number, providerFee: number, serviceFee: number, total: number, installments: number }
 type PixResponse = { encodedImage: string, payload: string, expirationDate?: string }
-type Checkout = { status: string, has_open_pix: boolean, course_title: string, expires_at: string, prices: { pix: Price, card: Price[] } }
+type Checkout = { status: string, has_open_pix: boolean, course_title: string, expires_at: string, prices: { pix: Price } }
 const { data: checkout, refresh: refreshCheckout } = await useFetch<Checkout>(`/api/payments/${reference}`)
 if (!checkout.value) { throw createError({ statusCode: 404, statusMessage: 'Pagamento não encontrado' }) }
 
-const method = ref<'PIX' | 'CREDIT_CARD'>('PIX')
-const card = reactive({ holder_name: '', number: '', expiry_month: '', expiry_year: '', ccv: '', installments: 1 })
 const loading = ref(false)
 const errorMessage = ref('')
 const pix = ref<{ encodedImage: string, payload: string, expirationDate?: string } | null>(null)
-const cardProcessed = ref(false)
 const paymentConfirmed = computed(() => checkout.value?.status === 'PAID')
-const selectedPrice = computed(() => method.value === 'PIX' ? checkout.value!.prices.pix : checkout.value!.prices.card[card.installments - 1]!)
 const currency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 const pay = async () => {
   loading.value = true
   errorMessage.value = ''
   try {
-    if (method.value === 'PIX') {
-      pix.value = await $fetch<PixResponse>(String(`/api/payments/${reference}/pix`), { method: 'POST' })
-    }
-    else {
-      await $fetch(String(`/api/payments/${reference}/card`), { method: 'POST', body: card })
-      cardProcessed.value = true
-    }
+    pix.value = await $fetch<PixResponse>(String(`/api/payments/${reference}/pix`), { method: 'POST' })
   }
   catch (error: unknown) {
     const fetchError = error as { data?: { statusMessage?: string } }
@@ -94,92 +84,26 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
           {{ checkout?.course_title }}
         </h1>
         <p class="mt-2 text-muted">
-          Seus dados já estão preenchidos. Escolha somente a forma de pagamento.
+          Seus dados já estão preenchidos. O pagamento está disponível via Pix.
         </p>
 
         <div
           v-if="!checkout?.has_open_pix"
-          class="mt-8 grid gap-3 sm:grid-cols-2"
+          class="mt-8"
         >
-          <button
-            type="button"
-            class="rounded-xl border p-4 font-bold"
-            :class="method === 'PIX' ? 'border-primary bg-blue-50' : 'border-border'"
-            @click="method = 'PIX'"
-          >
+          <div class="rounded-xl border border-primary bg-blue-50 p-4 text-center font-bold">
             PIX
-          </button>
-          <button
-            type="button"
-            class="rounded-xl border p-4 font-bold"
-            :class="method === 'CREDIT_CARD' ? 'border-primary bg-blue-50' : 'border-border'"
-            @click="method = 'CREDIT_CARD'"
-          >
-            CARTÃO
-          </button>
+          </div>
         </div>
 
         <form
-          v-if="!pix && !cardProcessed && !checkout?.has_open_pix"
+          v-if="!pix && !checkout?.has_open_pix"
           class="mt-6 space-y-5"
           @submit.prevent="pay"
         >
-          <template v-if="method === 'CREDIT_CARD'">
-            <label class="block font-bold">Nome impresso no cartão<input
-              v-model="card.holder_name"
-              required
-              autocomplete="cc-name"
-              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-            ></label>
-            <label class="block font-bold">Número do cartão<input
-              v-model="card.number"
-              required
-              inputmode="numeric"
-              autocomplete="cc-number"
-              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-            ></label>
-            <div class="grid gap-3 sm:grid-cols-3">
-              <label class="block font-bold">Mês<input
-                v-model="card.expiry_month"
-                required
-                placeholder="MM"
-                inputmode="numeric"
-                autocomplete="cc-exp-month"
-                class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-              ></label>
-              <label class="block font-bold">Ano<input
-                v-model="card.expiry_year"
-                required
-                placeholder="AAAA"
-                inputmode="numeric"
-                autocomplete="cc-exp-year"
-                class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-              ></label>
-              <label class="block font-bold">CVV<input
-                v-model="card.ccv"
-                required
-                type="password"
-                inputmode="numeric"
-                autocomplete="cc-csc"
-                class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-              ></label>
-            </div>
-            <label class="block font-bold">Parcelas
-              <select
-                v-model="card.installments"
-                class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-              >
-                <option
-                  v-for="price in checkout?.prices.card"
-                  :key="price.installments"
-                  :value="price.installments"
-                >{{ price.installments }}x de {{ currency(price.total / price.installments) }} — total {{ currency(price.total) }}</option>
-              </select>
-            </label>
-          </template>
           <dl class="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
             <div class="flex justify-between text-base font-black">
-              <dt>Total</dt><dd>{{ currency(selectedPrice.total) }}</dd>
+              <dt>Total</dt><dd>{{ currency(checkout!.prices.pix.total) }}</dd>
             </div>
           </dl>
           <p
@@ -194,7 +118,7 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
             class="w-full"
             :disabled="loading"
           >
-            {{ loading ? 'PROCESSANDO…' : method === 'PIX' ? 'GERAR PIX' : 'PAGAR COM CARTÃO' }}
+            {{ loading ? 'PROCESSANDO…' : 'GERAR PIX' }}
           </AppButton>
         </form>
 
@@ -240,16 +164,6 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
           >
             COPIAR CÓDIGO PIX
           </AppButton>
-        </div>
-        <div
-          v-if="cardProcessed"
-          class="mt-8 rounded-xl bg-green-50 p-6 text-center"
-        >
-          <h2 class="text-xl font-black">
-            Pagamento enviado
-          </h2><p class="mt-2">
-            Aguarde a confirmação da operadora. Sua inscrição será liberada automaticamente.
-          </p>
         </div>
       </template>
     </section>
