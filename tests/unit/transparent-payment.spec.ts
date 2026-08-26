@@ -31,7 +31,8 @@ describe('transparent payment', () => {
     expect(page).not.toContain('address_number')
     expect(endpoint).not.toContain('postal_code: z.string()')
     expect(endpoint).not.toContain('address_number: z.string()')
-    expect(endpoint).toContain('postalCode: \'64000000\', addressNumber: \'10\'')
+    expect(endpoint).not.toContain('postalCode')
+    expect(endpoint).not.toContain('addressNumber')
   })
   it('refreshes the order until payment is confirmed and presents first-access instructions', () => {
     const page = readFileSync('app/pages/pagamento/[reference].vue', 'utf8')
