@@ -21,11 +21,12 @@ export type HolderInput = {
   name: string
   email: string
   cpfCnpj: string
-  postalCode: string
-  addressNumber: string
   phone: string
   mobilePhone: string
 }
+
+const DEFAULT_CARD_POSTAL_CODE = '64000000'
+const DEFAULT_CARD_ADDRESS_NUMBER = '10'
 
 export class AsaasTransparentPaymentProvider {
   constructor(private readonly apiUrl: string, private readonly apiKey: string) {
@@ -94,7 +95,16 @@ export class AsaasTransparentPaymentProvider {
   }) {
     const payload = await this.request<AsaasPayment>('/payments', {
       method: 'POST',
-      body: JSON.stringify({ ...input, billingType: 'CREDIT_CARD', totalValue: input.value }),
+      body: JSON.stringify({
+        ...input,
+        billingType: 'CREDIT_CARD',
+        totalValue: input.value,
+        creditCardHolderInfo: {
+          ...input.creditCardHolderInfo,
+          postalCode: DEFAULT_CARD_POSTAL_CODE,
+          addressNumber: DEFAULT_CARD_ADDRESS_NUMBER,
+        },
+      }),
     })
     if (!payload.id) { throw createError({ statusCode: 502, statusMessage: 'Resposta inválida ao processar cartão' }) }
     return payload
