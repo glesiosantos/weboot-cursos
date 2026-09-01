@@ -32,6 +32,9 @@ describe('sales dashboard and student materials', () => {
 
   it('removes a participant through the protected panel flow and releases a test identity', () => {
     expect(participantsPage).toContain('Remover participante')
+    expect(participantsPage).toContain('icon="trash"')
+    expect(participantsPage).toContain('icon="key"')
+    expect(participantsPage).toContain('icon="ticket"')
     expect(participantDeleteApi).toContain('requireCourseManager(event, courseId)')
     expect(participantDeleteApi).toContain('admin.rpc(\'admin_remove_course_participant\'')
     expect(participantDeleteApi).toContain('admin.auth.admin.deleteUser(result.user_id)')

@@ -216,45 +216,41 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
             </dt><dd>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</dd>
           </div>
         </dl>
-        <div class="mt-4 flex flex-col items-start gap-3 border-t border-border pt-4">
-          <AppButton
+        <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+          <AdminIconAction
             v-if="item.eventCredentials[0]?.status === 'ACTIVE'"
             :to="`/admin/cursos/${courseId}/checkin?codigo=${encodeURIComponent(item.eventCredentials[0].code)}`"
-            variant="secondary"
-          >
-            Entrada
-          </AppButton>
-          <button
+            label="Registrar entrada"
+            icon="checkin"
+          />
+          <AdminIconAction
             v-if="item.enrollmentId"
-            class="text-left text-xs font-bold text-primary-700 underline"
+            label="Reenviar confirmação"
+            icon="bell"
             :disabled="notifyingId === item.enrollmentId"
             @click="resend(item.enrollmentId, 'ENROLLMENT_CONFIRMATION')"
-          >
-            Reenviar confirmação
-          </button>
-          <button
+          />
+          <AdminIconAction
             v-if="item.enrollmentId"
-            class="text-left text-xs font-bold text-primary-700 underline"
+            label="Reenviar primeiro acesso"
+            icon="key"
             :disabled="notifyingId === item.enrollmentId"
             @click="resend(item.enrollmentId, 'PASSWORD_SETUP')"
-          >
-            Reenviar primeiro acesso
-          </button>
-          <button
+          />
+          <AdminIconAction
             v-if="item.enrollmentId"
-            class="text-left text-xs font-bold text-primary-700 underline"
+            label="Reenviar credencial"
+            icon="ticket"
             :disabled="notifyingId === item.enrollmentId"
             @click="resend(item.enrollmentId, 'EVENT_CREDENTIAL')"
-          >
-            Reenviar credencial
-          </button>
-          <button
-            class="text-left text-xs font-bold text-danger underline disabled:opacity-60"
+          />
+          <AdminIconAction
+            label="Remover participante"
+            icon="trash"
+            danger
             :disabled="removingId === item.id"
             @click="removeParticipant(item)"
-          >
-            {{ removingId === item.id ? 'Removendo…' : 'Remover participante' }}
-          </button>
+          />
         </div>
       </article>
       <p
@@ -285,40 +281,36 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
               {{ item.name }}
             </td><td>{{ item.email }}</td><td>{{ phone(item.phone) }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge></td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
               <div class="flex flex-wrap gap-2">
-                <AppButton
+                <AdminIconAction
                   v-if="item.eventCredentials[0]?.status === 'ACTIVE'"
                   :to="`/admin/cursos/${courseId}/checkin?codigo=${encodeURIComponent(item.eventCredentials[0].code)}`"
-                  variant="secondary"
-                >
-                  Entrada
-                </AppButton><button
+                  label="Registrar entrada"
+                  icon="checkin"
+                /><AdminIconAction
                   v-if="item.enrollmentId"
-                  class="text-xs font-bold text-primary-700 underline"
+                  label="Reenviar confirmação"
+                  icon="bell"
                   :disabled="notifyingId === item.enrollmentId"
                   @click="resend(item.enrollmentId, 'ENROLLMENT_CONFIRMATION')"
-                >
-                  {{ notifyingId === item.enrollmentId ? 'Enviando…' : 'Reenviar confirmação' }}
-                </button><button
+                /><AdminIconAction
                   v-if="item.enrollmentId"
-                  class="text-xs font-bold text-primary-700 underline"
+                  label="Reenviar primeiro acesso"
+                  icon="key"
                   :disabled="notifyingId === item.enrollmentId"
                   @click="resend(item.enrollmentId, 'PASSWORD_SETUP')"
-                >
-                  {{ notifyingId === item.enrollmentId ? 'Enviando…' : 'Reenviar primeiro acesso' }}
-                </button><button
+                /><AdminIconAction
                   v-if="item.enrollmentId"
-                  class="text-xs font-bold text-primary-700 underline"
+                  label="Reenviar credencial"
+                  icon="ticket"
                   :disabled="notifyingId === item.enrollmentId"
                   @click="resend(item.enrollmentId, 'EVENT_CREDENTIAL')"
-                >
-                  {{ notifyingId === item.enrollmentId ? 'Enviando…' : 'Reenviar credencial' }}
-                </button><button
-                  class="text-xs font-bold text-danger underline disabled:cursor-wait disabled:opacity-60"
+                /><AdminIconAction
+                  label="Remover participante"
+                  icon="trash"
+                  danger
                   :disabled="removingId === item.id"
                   @click="removeParticipant(item)"
-                >
-                  {{ removingId === item.id ? 'Removendo…' : 'Remover participante' }}
-                </button>
+                />
               </div>
             </td>
           </tr>
