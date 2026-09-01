@@ -61,7 +61,7 @@ export class MercadoPagoPaymentProvider {
         description: input.description,
         payment_method_id: 'pix',
         external_reference: input.externalReference,
-        date_of_expiration: input.expirationDate,
+        date_of_expiration: new Date(input.expirationDate).toISOString(),
         ...(input.notificationUrl ? { notification_url: input.notificationUrl } : {}),
         payer: {
           email: input.payer.email,
