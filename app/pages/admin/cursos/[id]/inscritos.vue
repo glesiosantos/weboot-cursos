@@ -2,7 +2,7 @@
 definePageMeta({ layout: 'admin', middleware: ['auth', 'staff'] })
 const route = useRoute()
 const courseId = String(route.params.id)
-type Participant = { id: string, enrollmentId: string | null, name: string, email: string, registeredAt: string, paymentStatus: string, total: number, enrollmentStatus: string | null, eventCredentials: { code: string, status: string }[], attendance: { status: string }[] }
+type Participant = { id: string, enrollmentId: string | null, name: string, email: string, phone: string, registeredAt: string, paymentStatus: string, total: number, enrollmentStatus: string | null, eventCredentials: { code: string, status: string }[], attendance: { status: string }[] }
 type CourseDashboard = {
   course: { id: string, title: string, course_type: string, status: string }
   summary: { registrations: number, enrolled: number, paid: number, pending: number, revenue: number, credentials: number, checkedIn: number, batchSales: Record<string, number> }
@@ -17,11 +17,17 @@ const actionMessage = ref('')
 const actionError = ref('')
 const filtered = computed(() => (dashboard.value?.participants ?? []).filter((item) => {
   const term = search.value.trim().toLocaleLowerCase('pt-BR')
-  const matchesTerm = !term || `${item.name} ${item.email} ${item.eventCredentials[0]?.code ?? ''}`.toLocaleLowerCase('pt-BR').includes(term)
+  const matchesTerm = !term || `${item.name} ${item.email} ${item.phone} ${item.eventCredentials[0]?.code ?? ''}`.toLocaleLowerCase('pt-BR').includes(term)
   return matchesTerm && (status.value === 'TODOS' || item.paymentStatus === status.value)
 }))
 const money = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
 const date = (value: string) => new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short' }).format(new Date(value))
+const phone = (value: string) => {
+  const digits = value.replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')
+  if (digits.length === 11) { return digits.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3') }
+  if (digits.length === 10) { return digits.replace(/^(\d{2})(\d{4})(\d{4})$/, '($1) $2-$3') }
+  return value || '—'
+}
 const resend = async (enrollmentId: string, type: 'ENROLLMENT_CONFIRMATION' | 'EVENT_CREDENTIAL' | 'PASSWORD_SETUP') => {
   notifyingId.value = enrollmentId
   actionMessage.value = ''
@@ -128,7 +134,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
         v-model="search"
         type="search"
         class="field !mt-0 flex-1"
-        placeholder="Buscar por nome, email ou código"
+        placeholder="Buscar por nome, email, celular ou código"
       >
       <label
         class="sr-only"
@@ -182,6 +188,9 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
             </h2>
             <p class="mt-1 break-all text-sm text-muted">
               {{ item.email }}
+            </p>
+            <p class="mt-1 text-sm text-muted">
+              {{ phone(item.phone) }}
             </p>
           </div><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge>
         </div>
@@ -261,7 +270,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           <tr>
             <th class="p-4">
               Aluno
-            </th><th>Email</th><th>Inscrição</th><th>Pagamento</th><th>Matrícula</th><th>Credencial</th><th>Check-in</th><th class="p-4">
+            </th><th>Email</th><th>Celular</th><th>Inscrição</th><th>Pagamento</th><th>Matrícula</th><th>Credencial</th><th>Check-in</th><th class="p-4">
               Ações
             </th>
           </tr>
@@ -274,7 +283,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           >
             <td class="p-4 font-bold">
               {{ item.name }}
-            </td><td>{{ item.email }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge></td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
+            </td><td>{{ item.email }}</td><td>{{ phone(item.phone) }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge></td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
               <div class="flex flex-wrap gap-2">
                 <AppButton
                   v-if="item.eventCredentials[0]?.status === 'ACTIVE'"

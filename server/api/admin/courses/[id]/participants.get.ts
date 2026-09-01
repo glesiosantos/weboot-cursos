@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const { data: course, error: courseError } = await client.from('courses').select('id,title,course_type,status').eq('id', courseId).single()
   if (courseError || !course) { throw createError({ statusCode: 404, statusMessage: 'Curso não encontrado' }) }
   const { data, error } = await client.from('orders')
-    .select('id,user_id,status,total,course_batch_id,created_at,registration_contacts(full_name,email),enrollments(id,status,profiles(name),event_credentials(code,status,used_at),attendance(status,checked_in_at))')
+    .select('id,user_id,status,total,course_batch_id,created_at,registration_contacts(full_name,email,whatsapp),enrollments(id,status,profiles(name),event_credentials(code,status,used_at),attendance(status,checked_in_at))')
     .eq('course_id', courseId).order('created_at')
   if (error) { throw createError({ statusCode: 500, statusMessage: 'Não foi possível consultar inscritos' }) }
   const { data: authUsers } = await client.auth.admin.listUsers({ perPage: 1000 })
@@ -23,6 +23,7 @@ export default defineEventHandler(async (event) => {
       enrollmentId: enrollment?.id ?? null,
       name: registration?.full_name ?? enrollment?.profiles?.name ?? 'Aluno',
       email: registration?.email ?? emails.get(order.user_id) ?? '',
+      phone: registration?.whatsapp ?? '',
       registeredAt: order.created_at,
       paymentStatus: order.status,
       total: order.total,
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
     setHeader(event, 'content-type', 'text/csv; charset=utf-8')
     setHeader(event, 'content-disposition', 'attachment; filename="inscritos.csv"')
     const clean = (value: unknown) => `"${String(value ?? '').replaceAll('"', '""')}"`
-    return ['Aluno,Email,Inscrição,Pagamento,Matrícula,Credencial,Check-in', ...participants.map((row: typeof participants[number]) => [row.name, row.email, row.registeredAt, row.paymentStatus, row.enrollmentStatus, row.eventCredentials[0]?.status, row.attendance.some((item: { status?: string }) => item.status === 'PRESENT') ? 'Realizado' : ''].map(clean).join(','))].join('\n')
+    return ['Aluno,Email,Celular,Inscrição,Pagamento,Matrícula,Credencial,Check-in', ...participants.map((row: typeof participants[number]) => [row.name, row.email, row.phone, row.registeredAt, row.paymentStatus, row.enrollmentStatus, row.eventCredentials[0]?.status, row.attendance.some((item: { status?: string }) => item.status === 'PRESENT') ? 'Realizado' : ''].map(clean).join(','))].join('\n')
   }
   const paid = participants.filter((row: typeof participants[number]) => row.paymentStatus === 'PAID')
   return {

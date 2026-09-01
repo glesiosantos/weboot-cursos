@@ -20,11 +20,14 @@ describe('sales dashboard and student materials', () => {
 
   it('shows every course registration before or after enrollment', () => {
     expect(participantsApi).toContain('client.from(\'orders\')')
-    expect(participantsApi).toContain('registration_contacts(full_name,email)')
+    expect(participantsApi).toContain('registration_contacts(full_name,email,whatsapp)')
+    expect(participantsApi).toContain('phone: registration?.whatsapp ?? \'\'')
     expect(participantsApi).toContain('enrollmentId: enrollment?.id ?? null')
     expect(participantsApi).toContain('registrations: participants.length')
     expect(participantsPage).toContain('Inscrições recebidas')
     expect(participantsPage).toContain('item.enrollmentStatus ?? \'Não matriculado\'')
+    expect(participantsPage).toContain('{{ phone(item.phone) }}')
+    expect(participantsPage).toContain('${item.name} ${item.email} ${item.phone}')
   })
 
   it('removes a participant through the protected panel flow and releases a test identity', () => {
