@@ -2,7 +2,7 @@
 
 ## Arquitetura
 
-O Nuxt cria o pedido e a reserva no banco e abre o checkout transparente em `/pagamento/[reference]`. Pix e cartão são processados pela API do Asaas Sandbox sem redirecionamento. Número do cartão e CVV existem somente em memória durante a requisição e nunca são persistidos ou registrados em logs. Como os dados passam pelo backend, HTTPS e conformidade PCI DSS SAQ-D são requisitos operacionais antes de produção.
+O Nuxt cria o pedido e a reserva no banco e abre o checkout transparente em `/pagamento/[reference]`. O Pix é criado pela API de pagamentos do Mercado Pago sem redirecionamento; o navegador recebe somente QR Code e Pix Copia e Cola. A matrícula continua dependendo da confirmação autoritativa do servidor.
 
 ### Inscrição pública sem login
 
@@ -10,7 +10,7 @@ O Nuxt cria o pedido e a reserva no banco e abre o checkout transparente em `/pa
 
 O modelo atual usa `course_batches` como oferta comercial/turma e `course_presential_details` para data e local. Não foi criada uma `course_offerings` paralela para evitar duas fontes de preço, vagas e período. A matrícula registra `course_batch_id`, permitindo evolução posterior sem perder a turma comprada.
 
-Pagamento confirmado chama uma única rotina: associa conta existente por email ou envia convite seguro do Supabase para uma nova conta, força perfil `STUDENT`, ativa matrícula/reserva e cria a credencial. Curso gratuito passa pela mesma rotina sem chamar o Asaas. O retorno do navegador apenas consulta status.
+Pagamento confirmado chama uma única rotina: associa conta existente por email ou envia convite seguro do Supabase para uma nova conta, força perfil `STUDENT`, ativa matrícula/reserva e cria a credencial. Curso gratuito passa pela mesma rotina sem chamar o Mercado Pago. O retorno do navegador apenas consulta status.
 
 Notificações ficam atrás de `NotificationProvider`. Emails usam SMTP quando `NUXT_SMTP_HOST`, `NUXT_SMTP_USER` e `NUXT_SMTP_PASSWORD` estão configurados; o remetente opcional é `NUXT_SMTP_FROM`. Configure `NUXT_NOTIFICATION_WEBHOOK_URL` e, opcionalmente, `NUXT_NOTIFICATION_WEBHOOK_TOKEN` para WhatsApp. Sem provider, o evento é registrado como `SKIPPED`, sem simular entrega. O comprovante PDF é gerado sob demanda em rota autenticada e usa cache privado desabilitado.
 
@@ -18,9 +18,9 @@ Permanecem futuras: múltiplos participantes, inscrição corporativa, transfer�
 
 ## Configuração
 
-Configure somente no servidor `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_WEBHOOK_TOKEN` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Use `NUXT_ASAAS_API_URL=https://api-sandbox.asaas.com/v3` em testes e `NUXT_ASAAS_API_URL=https://api.asaas.com/v3` em produção, sempre com a chave correspondente ao mesmo ambiente. Pix e cartão à vista usam o valor do curso/lote. Para cartão de 2 a 6 parcelas, configure `NUXT_ASAAS_CARD_INSTALLMENT_PERCENT=2.49` e `NUXT_ASAAS_CARD_FIXED=5.49`.
+Configure somente no servidor `NUXT_MERCADO_PAGO_ACCESS_TOKEN`, `NUXT_MERCADO_PAGO_WEBHOOK_SECRET`, `NUXT_MERCADO_PAGO_WEBHOOK_URL` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Use credenciais de teste durante a homologação e credenciais de produção somente no deploy produtivo. O checkout permanece exclusivamente Pix. Se a tarifa for repassada, configure `NUXT_MERCADO_PAGO_PIX_PERCENT` e `NUXT_MERCADO_PAGO_PIX_FIXED` com os valores contratados.
 
-No ambiente correspondente do Asaas, cadastre `https://SEU_DOMINIO/api/webhooks/asaas`, o mesmo token seguro (32–255 caracteres) e apenas os eventos necessários: `PAYMENT_CONFIRMED`, `PAYMENT_RECEIVED`, `PAYMENT_REFUNDED`, `PAYMENT_DELETED` e `PAYMENT_OVERDUE`. Em desenvolvimento, exponha a aplicação com um túnel HTTPS como ngrok; nunca grave a URL temporária no código.
+Em Suas integrações do Mercado Pago, cadastre `https://SEU_DOMINIO/api/webhooks/mercado-pago` para o tópico Pagamentos e copie a assinatura secreta gerada. A URL deve coincidir com `NUXT_MERCADO_PAGO_WEBHOOK_URL`. O endpoint valida `x-signature`, consulta o pagamento na API e confere ID, pedido e valor antes de liberar a matrícula. Em desenvolvimento, use um túnel HTTPS sem gravar sua URL temporária no código.
 
 ## Regras
 
@@ -35,4 +35,4 @@ No ambiente correspondente do Asaas, cadastre `https://SEU_DOMINIO/api/webhooks/
 
 ## Validação
 
-Use `npm run lint`, `npm run typecheck`, `npm run test`, `npm run test:e2e` e `npm run build`. O E2E público usa configuração local não sensível quando secrets não existem; cenários autenticados/Sandbox permanecem ignorados até que `E2E_*`, Supabase DEV e Asaas Sandbox sejam configurados. Nunca interprete teste com fixture como prova de entrega real do provider.
+Use `npm run lint`, `npm run typecheck`, `npm run test`, `npm run test:e2e` e `npm run build`. O E2E público usa configuração local não sensível quando secrets não existem; cenários autenticados permanecem ignorados até que `E2E_*`, Supabase DEV e Mercado Pago de teste sejam configurados. Nunca interprete teste com fixture como prova de pagamento ou webhook real.

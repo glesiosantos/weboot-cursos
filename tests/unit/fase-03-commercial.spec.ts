@@ -3,12 +3,13 @@ import { describe, expect, it } from 'vitest'
 
 const migration = readFileSync('supabase/migrations/20260812000200_commercial_checkout_and_event_access.sql', 'utf8')
 const registration = readFileSync('server/api/registrations/index.post.ts', 'utf8')
-const provider = readFileSync('server/services/asaas-transparent-payment.provider.ts', 'utf8')
-const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
+const provider = readFileSync('server/services/mercado-pago-payment.provider.ts', 'utf8')
+const webhook = readFileSync('server/api/webhooks/mercado-pago.post.ts', 'utf8')
 const completion = readFileSync('server/services/complete-order.service.ts', 'utf8')
 const checkin = readFileSync('server/api/admin/events/[courseId]/checkin.post.ts', 'utf8')
 const checkoutFunctionFix = readFileSync('supabase/migrations/20260813000200_fix_checkout_function_ambiguity.sql', 'utf8')
 const paymentConfirmationFix = readFileSync('supabase/migrations/20260815000400_fix_payment_confirmation_enrollment_ambiguity.sql', 'utf8')
+const mercadoPagoMigration = readFileSync('supabase/migrations/20260901000100_mercado_pago_pix.sql', 'utf8')
 
 describe('Fase 03 commercial contract', () => {
   it('takes fixed and batch prices only inside the database transaction', () => {
@@ -45,20 +46,21 @@ describe('Fase 03 commercial contract', () => {
     expect(paymentConfirmationFix).toContain('#variable_conflict use_column')
   })
 
-  it('uses transparent Asaas payment with official environments', () => {
-    expect(provider).toContain('api-sandbox.asaas.com')
-    expect(provider).toContain('api.asaas.com')
-    expect(provider).toContain('/payments')
-    expect(provider).toContain('billingType: \'PIX\'')
-    expect(provider).toContain('billingType: \'CREDIT_CARD\'')
+  it('uses Mercado Pago transparent Pix with idempotency', () => {
+    expect(provider).toContain('https://api.mercadopago.com')
+    expect(provider).toContain('/v1/payments')
+    expect(provider).toContain('\'X-Idempotency-Key\'')
+    expect(provider).toContain('payment_method_id: \'pix\'')
     expect(registration).toContain('`/pagamento/${encodeURIComponent(reference)}`')
+    expect(mercadoPagoMigration).toContain('values(target_order.id, target_order.payment_provider')
   })
 
   it('authenticates and deduplicates webhooks before idempotent effects', () => {
-    expect(webhook).toContain('getHeader(event, \'asaas-access-token\')')
+    expect(webhook).toContain('getHeader(event, \'x-signature\')')
+    expect(webhook).toContain('createHmac(\'sha256\'')
     expect(webhook).toContain('eventError?.code === \'23505\'')
     expect(webhook).toContain('existing?.status === \'PROCESSED\'')
-    expect(webhook).toContain('\'CHECKOUT_PAID\'')
+    expect(webhook).toContain('payment.status === \'approved\'')
     expect(migration).toContain('on conflict (user_id, course_id) do update')
     expect(migration).toContain('on conflict (enrollment_id) do nothing')
   })

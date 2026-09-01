@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { serverSupabaseServiceRole } from '#supabase/server'
-import { AsaasTransparentPaymentProvider } from '../services/asaas-transparent-payment.provider'
+import { MercadoPagoPaymentProvider } from '../services/mercado-pago-payment.provider'
 import { sha256 } from './commercial'
 import { revealRegistrationCpf } from './registration'
 
@@ -19,18 +19,19 @@ export const loadPaymentContext = async (event: H3Event) => {
   return { admin, contact, order, reference }
 }
 
-export const ensureAsaasCustomer = async (event: H3Event, context: Awaited<ReturnType<typeof loadPaymentContext>>) => {
+export const loadMercadoPagoProvider = (event: H3Event) => {
   const config = useRuntimeConfig(event)
-  if (!config.asaasApiKey) { throw createError({ statusCode: 503, statusMessage: 'Pagamento não configurado' }) }
-  const provider = new AsaasTransparentPaymentProvider(String(config.asaasApiUrl), String(config.asaasApiKey))
-  if (context.contact.asaas_customer_id) { return { provider, customerId: context.contact.asaas_customer_id as string } }
-  const cpf = revealRegistrationCpf(context.contact.cpf_encrypted, String(config.registrationDataKey || ''))
-  const customerId = await provider.createCustomer({
-    name: context.contact.full_name, cpfCnpj: cpf, email: context.contact.email,
-    mobilePhone: context.contact.whatsapp.replace(/\D/g, ''),
-    externalReference: context.contact.id,
-  })
-  const { error } = await context.admin.from('registration_contacts').update({ asaas_customer_id: customerId }).eq('id', context.contact.id)
-  if (error) { throw error }
-  return { provider, customerId }
+  if (!config.mercadoPagoAccessToken) { throw createError({ statusCode: 503, statusMessage: 'Pagamento não configurado' }) }
+  return new MercadoPagoPaymentProvider(String(config.mercadoPagoAccessToken))
+}
+
+export const mercadoPagoPayer = (context: Awaited<ReturnType<typeof loadPaymentContext>>, registrationDataKey: string) => {
+  const [parsedFirstName, ...remainingNames] = String(context.contact.full_name).trim().split(/\s+/)
+  const firstName = parsedFirstName || 'Cliente'
+  return {
+    email: context.contact.email,
+    firstName,
+    lastName: remainingNames.join(' ') || firstName,
+    cpf: revealRegistrationCpf(context.contact.cpf_encrypted, registrationDataKey).replace(/\D/g, ''),
+  }
 }
