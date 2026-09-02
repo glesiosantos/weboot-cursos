@@ -7,6 +7,7 @@ type CourseDashboard = {
   course: { id: string, title: string, course_type: string, status: string }
   summary: { registrations: number, enrolled: number, paid: number, pending: number, revenue: number, credentials: number, checkedIn: number, batchSales: Record<string, number> }
   participants: Participant[]
+  canManualEnroll: boolean
 }
 const { data: dashboard, refresh, pending, error } = await useFetch<CourseDashboard>(`/api/admin/courses/${courseId}/participants`)
 const search = ref('')
@@ -15,6 +16,9 @@ const removingId = ref<string | null>(null)
 const notifyingId = ref<string | null>(null)
 const actionMessage = ref('')
 const actionError = ref('')
+const showManualEnrollment = ref(false)
+const creatingEnrollment = ref(false)
+const manualEnrollment = reactive({ full_name: '', cpf: '', email: '', whatsapp: '', payment_method: 'PIX' as 'PIX' | 'TRANSFER' | 'CASH' | 'OTHER', payment_reference: '', amount_received: '', customer_authorized: false })
 const filtered = computed(() => (dashboard.value?.participants ?? []).filter((item) => {
   const term = search.value.trim().toLocaleLowerCase('pt-BR')
   const matchesTerm = !term || `${item.name} ${item.email} ${item.phone} ${item.eventCredentials[0]?.code ?? ''}`.toLocaleLowerCase('pt-BR').includes(term)
@@ -63,6 +67,24 @@ const removeParticipant = async (participant: Participant) => {
     removingId.value = null
   }
 }
+const createManualEnrollment = async () => {
+  creatingEnrollment.value = true
+  actionMessage.value = ''
+  actionError.value = ''
+  try {
+    await $fetch(`/api/admin/courses/${courseId}/participants/manual-enrollment`, { method: 'POST', body: manualEnrollment })
+    actionMessage.value = `${manualEnrollment.full_name} foi matriculado. As notificações de acesso e confirmação foram processadas.`
+    Object.assign(manualEnrollment, { full_name: '', cpf: '', email: '', whatsapp: '', payment_method: 'PIX', payment_reference: '', amount_received: '', customer_authorized: false })
+    showManualEnrollment.value = false
+    await refresh()
+  }
+  catch (error) {
+    actionError.value = apiErrorMessage(error, 'Não foi possível realizar a matrícula avulsa.')
+  }
+  finally {
+    creatingEnrollment.value = false
+  }
+}
 const cards = computed(() => [
   { label: 'Inscrições recebidas', value: String(dashboard.value?.summary.registrations ?? 0) },
   { label: 'Alunos ativos', value: String(dashboard.value?.summary.enrolled ?? 0) },
@@ -93,6 +115,13 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           Inscrições, pagamentos, matrículas, credenciais e presença deste curso.
         </p>
       </div><div class="flex flex-wrap gap-3">
+        <AppButton
+          v-if="dashboard?.canManualEnroll"
+          variant="secondary"
+          @click="showManualEnrollment = !showManualEnrollment"
+        >
+          Matrícula avulsa
+        </AppButton>
         <AppButton :to="`/admin/cursos/${courseId}/checkin`">
           Check-in
         </AppButton>
@@ -105,6 +134,96 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
         </AppButton>
       </div>
     </div>
+    <form
+      v-if="showManualEnrollment"
+      class="mt-6 rounded-card border border-border bg-white p-5"
+      @submit.prevent="createManualEnrollment"
+    >
+      <h2 class="text-xl font-black">
+        Confirmar pagamento e matricular aluno
+      </h2>
+      <p class="mt-2 text-sm text-muted">
+        Use somente quando o pagamento já foi recebido fora do checkout. O valor deve corresponder ao preço vigente do curso ou lote.
+      </p>
+      <div class="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <label class="text-sm font-bold">Nome completo<input
+          v-model="manualEnrollment.full_name"
+          required
+          minlength="6"
+          maxlength="150"
+          class="field"
+          autocomplete="name"
+        ></label>
+        <label class="text-sm font-bold">CPF<input
+          v-model="manualEnrollment.cpf"
+          required
+          class="field"
+          inputmode="numeric"
+          autocomplete="off"
+          placeholder="000.000.000-00"
+        ></label>
+        <label class="text-sm font-bold">Email<input
+          v-model="manualEnrollment.email"
+          required
+          type="email"
+          class="field"
+          autocomplete="email"
+        ></label>
+        <label class="text-sm font-bold">WhatsApp<input
+          v-model="manualEnrollment.whatsapp"
+          required
+          class="field"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder="(00) 00000-0000"
+        ></label>
+        <label class="text-sm font-bold">Forma recebida<select
+          v-model="manualEnrollment.payment_method"
+          class="field"
+        ><option value="PIX">Pix</option><option value="TRANSFER">Transferência</option><option value="CASH">Dinheiro</option><option value="OTHER">Outro</option></select></label>
+        <label class="text-sm font-bold">Valor recebido<input
+          v-model="manualEnrollment.amount_received"
+          required
+          type="number"
+          min="0.01"
+          step="0.01"
+          class="field"
+          inputmode="decimal"
+          placeholder="0,00"
+        ></label>
+        <label class="text-sm font-bold md:col-span-2 xl:col-span-3">Referência/comprovante do pagamento<input
+          v-model="manualEnrollment.payment_reference"
+          required
+          minlength="3"
+          maxlength="100"
+          class="field"
+          autocomplete="off"
+          placeholder="ID da transação ou identificação do comprovante"
+        ></label>
+      </div>
+      <label class="mt-4 flex items-start gap-3 text-sm"><input
+        v-model="manualEnrollment.customer_authorized"
+        required
+        type="checkbox"
+        class="mt-1"
+      ><span>Confirmo que o cliente autorizou o cadastro e que conferi o recebimento deste pagamento.</span></label>
+      <div class="mt-5 flex flex-wrap gap-3">
+        <AppButton
+          type="submit"
+          :disabled="creatingEnrollment"
+        >
+          {{ creatingEnrollment ? 'Matriculando...' : 'Confirmar pagamento e matricular' }}
+        </AppButton>
+        <AppButton
+          type="button"
+          variant="secondary"
+          :disabled="creatingEnrollment"
+          @click="showManualEnrollment = false"
+        >
+          Cancelar
+        </AppButton>
+      </div>
+    </form>
     <p
       v-if="error"
       role="alert"

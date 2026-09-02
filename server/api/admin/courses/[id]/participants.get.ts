@@ -3,7 +3,7 @@ import { requireCourseManager } from '../../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const courseId = getRouterParam(event, 'id')!
-  await requireCourseManager(event, courseId)
+  const manager = await requireCourseManager(event, courseId)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const client = serverSupabaseServiceRole(event) as any
   const { data: course, error: courseError } = await client.from('courses').select('id,title,course_type,status').eq('id', courseId).single()
@@ -56,5 +56,6 @@ export default defineEventHandler(async (event) => {
       }, {}),
     },
     participants,
+    canManualEnroll: manager.role === 'ADMIN',
   }
 })
