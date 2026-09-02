@@ -485,18 +485,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
             <p class="mt-1 text-sm text-muted">
               {{ phone(item.phone) }}
             </p>
-          </div><div class="flex flex-col items-end gap-2">
-            <AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge>
-            <button
-              v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT', 'EXPIRED'].includes(item.paymentStatus)"
-              type="button"
-              class="rounded-lg bg-primary-700 px-3 py-2 text-xs font-bold text-white hover:bg-primary-800 disabled:opacity-50"
-              :disabled="confirmingPayment"
-              @click="openPaymentConfirmation(item)"
-            >
-              Confirmar recebimento
-            </button>
-          </div>
+          </div><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge>
         </div>
         <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
           <div>
@@ -521,6 +510,15 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           </div>
         </dl>
         <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
+          <button
+            v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT', 'EXPIRED'].includes(item.paymentStatus)"
+            type="button"
+            class="rounded-lg bg-primary-700 px-3 py-2 text-xs font-bold text-white hover:bg-primary-800 disabled:opacity-50"
+            :disabled="confirmingPayment"
+            @click="openPaymentConfirmation(item)"
+          >
+            Confirmar recebimento
+          </button>
           <AdminIconAction
             v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT'].includes(item.paymentStatus)"
             label="Obter QR Code Pix"
@@ -590,9 +588,8 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           >
             <td class="p-4 font-bold">
               {{ item.name }}
-            </td><td>{{ item.email }}</td><td>{{ phone(item.phone) }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td>
-              <div class="flex flex-col items-start gap-2">
-                <AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge>
+            </td><td>{{ item.email }}</td><td>{{ phone(item.phone) }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge></td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
+              <div class="flex flex-wrap gap-2">
                 <button
                   v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT', 'EXPIRED'].includes(item.paymentStatus)"
                   type="button"
@@ -602,9 +599,6 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
                 >
                   Confirmar recebimento
                 </button>
-              </div>
-            </td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
-              <div class="flex flex-wrap gap-2">
                 <AdminIconAction
                   v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT'].includes(item.paymentStatus)"
                   label="Obter QR Code Pix"
