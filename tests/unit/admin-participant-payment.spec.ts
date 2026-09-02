@@ -10,6 +10,7 @@ describe('admin participant payment actions', () => {
     expect(confirmation).toContain('requireRole(event, [\'ADMIN\'])')
     expect(confirmation).toContain('.eq(\'course_id\', courseId)')
     expect(confirmation).toContain('amount_received')
+    expect(confirmation).toContain('receipt_note')
     expect(confirmation).toContain('payment_provider: \'MANUAL\'')
     expect(confirmation).toContain('completeCommercialOrder')
   })
@@ -22,8 +23,10 @@ describe('admin participant payment actions', () => {
     expect(pix).toContain('A reserva expirou')
   })
 
-  it('exposes both actions in each non-enrolled participant row', () => {
-    expect(page).toContain('Confirmar pagamento e matricular')
+  it('exposes payment actions and an audited receipt modal for non-enrolled participants', () => {
+    expect(page).toContain('Confirmar recebimento')
+    expect(page).toContain('Observação sobre o recebimento')
+    expect(page).toContain('aria-modal="true"')
     expect(page).toContain('Obter QR Code Pix')
     expect(page).toContain('Copiar código Pix')
   })

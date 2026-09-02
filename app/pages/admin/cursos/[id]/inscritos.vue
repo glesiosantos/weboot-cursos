@@ -22,7 +22,7 @@ const manualEnrollment = reactive({ full_name: '', cpf: '', email: '', whatsapp:
 const selectedParticipant = ref<Participant | null>(null)
 const confirmingPayment = ref(false)
 const loadingPixId = ref<string | null>(null)
-const paymentConfirmation = reactive({ payment_method: 'PIX' as 'PIX' | 'TRANSFER' | 'CASH' | 'OTHER', payment_reference: '', amount_received: '', customer_authorized: false })
+const paymentConfirmation = reactive({ payment_method: 'PIX' as 'PIX' | 'TRANSFER' | 'CASH' | 'OTHER', payment_reference: '', receipt_note: '', amount_received: '', customer_authorized: false })
 const pix = ref<{ paymentId: string, encodedImage: string, payload: string, expirationDate?: string } | null>(null)
 const filtered = computed(() => (dashboard.value?.participants ?? []).filter((item) => {
   const term = search.value.trim().toLocaleLowerCase('pt-BR')
@@ -93,7 +93,7 @@ const createManualEnrollment = async () => {
 const openPaymentConfirmation = (participant: Participant) => {
   selectedParticipant.value = participant
   pix.value = null
-  Object.assign(paymentConfirmation, { payment_method: 'PIX', payment_reference: '', amount_received: participant.total.toFixed(2), customer_authorized: false })
+  Object.assign(paymentConfirmation, { payment_method: 'PIX', payment_reference: '', receipt_note: '', amount_received: participant.total.toFixed(2), customer_authorized: false })
 }
 const closeParticipantAction = () => {
   if (confirmingPayment.value || loadingPixId.value) { return }
@@ -356,100 +356,117 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
     </p>
     <div
       v-if="selectedParticipant"
-      class="mt-5 rounded-card border border-border bg-white p-5"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      @click.self="closeParticipantAction"
     >
-      <div class="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 class="text-xl font-black">
-            {{ pix ? 'Pix para enviar ao aluno' : 'Confirmar pagamento recebido' }}
-          </h2>
-          <p class="mt-1 text-sm text-muted">
-            {{ selectedParticipant.name }} · {{ selectedParticipant.email }} · {{ money(selectedParticipant.total) }}
-          </p>
-        </div>
-        <button
-          type="button"
-          class="text-sm font-bold text-primary-700"
-          @click="closeParticipantAction"
-        >
-          Fechar
-        </button>
-      </div>
       <div
-        v-if="pix"
-        class="mt-5 grid gap-5 lg:grid-cols-[240px_1fr]"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="pix ? 'Pix para enviar ao aluno' : 'Confirmar pagamento recebido'"
+        class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-card border border-border bg-white p-5 shadow-xl"
       >
-        <img
-          :src="`data:image/png;base64,${pix.encodedImage}`"
-          alt="QR Code Pix"
-          class="mx-auto size-60 rounded-xl border border-border bg-white p-2"
-        >
-        <div class="min-w-0">
-          <label class="text-sm font-bold">Pix Copia e Cola<textarea
-            :value="pix.payload"
-            readonly
-            rows="6"
-            class="field break-all font-mono text-xs"
-            @focus="($event.target as HTMLTextAreaElement).select()"
-          /></label>
-          <p
-            v-if="pix.expirationDate"
-            class="mt-2 text-sm text-muted"
-          >
-            Válido até {{ new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(pix.expirationDate)) }}.
-          </p>
-          <AppButton
-            class="mt-4"
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-black">
+              {{ pix ? 'Pix para enviar ao aluno' : 'Confirmar pagamento recebido' }}
+            </h2>
+            <p class="mt-1 text-sm text-muted">
+              {{ selectedParticipant.name }} · {{ selectedParticipant.email }} · {{ money(selectedParticipant.total) }}
+            </p>
+          </div>
+          <button
             type="button"
-            @click="copyPix"
+            class="text-sm font-bold text-primary-700"
+            @click="closeParticipantAction"
           >
-            Copiar código Pix
-          </AppButton>
+            Fechar
+          </button>
         </div>
-      </div>
-      <form
-        v-else
-        class="mt-5"
-        @submit.prevent="confirmParticipantPayment"
-      >
-        <p class="text-sm text-muted">
-          Confirme somente após conferir o recebimento fora do checkout. Esta ação cria a matrícula e envia as notificações de acesso.
-        </p>
-        <div class="mt-4 grid gap-4 md:grid-cols-3">
-          <label class="text-sm font-bold">Forma recebida<select
-            v-model="paymentConfirmation.payment_method"
-            class="field"
-          ><option value="PIX">Pix</option><option value="TRANSFER">Transferência</option><option value="CASH">Dinheiro</option><option value="OTHER">Outro</option></select></label>
-          <label class="text-sm font-bold">Valor recebido<input
-            v-model="paymentConfirmation.amount_received"
-            required
-            type="number"
-            min="0.01"
-            step="0.01"
-            class="field"
-          ></label>
-          <label class="text-sm font-bold">Referência/comprovante<input
-            v-model="paymentConfirmation.payment_reference"
+        <div
+          v-if="pix"
+          class="mt-5 grid gap-5 lg:grid-cols-[240px_1fr]"
+        >
+          <img
+            :src="`data:image/png;base64,${pix.encodedImage}`"
+            alt="QR Code Pix"
+            class="mx-auto size-60 rounded-xl border border-border bg-white p-2"
+          >
+          <div class="min-w-0">
+            <label class="text-sm font-bold">Pix Copia e Cola<textarea
+              :value="pix.payload"
+              readonly
+              rows="6"
+              class="field break-all font-mono text-xs"
+              @focus="($event.target as HTMLTextAreaElement).select()"
+            /></label>
+            <p
+              v-if="pix.expirationDate"
+              class="mt-2 text-sm text-muted"
+            >
+              Válido até {{ new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(pix.expirationDate)) }}.
+            </p>
+            <AppButton
+              class="mt-4"
+              type="button"
+              @click="copyPix"
+            >
+              Copiar código Pix
+            </AppButton>
+          </div>
+        </div>
+        <form
+          v-else
+          class="mt-5"
+          @submit.prevent="confirmParticipantPayment"
+        >
+          <p class="text-sm text-muted">
+            Confirme somente após conferir o recebimento fora do checkout. Esta ação cria a matrícula e envia as notificações de acesso.
+          </p>
+          <div class="mt-4 grid gap-4 md:grid-cols-3">
+            <label class="text-sm font-bold">Forma recebida<select
+              v-model="paymentConfirmation.payment_method"
+              class="field"
+            ><option value="PIX">Pix</option><option value="TRANSFER">Transferência</option><option value="CASH">Dinheiro</option><option value="OTHER">Outro</option></select></label>
+            <label class="text-sm font-bold">Valor recebido<input
+              v-model="paymentConfirmation.amount_received"
+              required
+              type="number"
+              min="0.01"
+              step="0.01"
+              class="field"
+            ></label>
+            <label class="text-sm font-bold">Referência/comprovante<input
+              v-model="paymentConfirmation.payment_reference"
+              required
+              minlength="3"
+              maxlength="100"
+              class="field"
+            ></label>
+          </div>
+          <label class="mt-4 block text-sm font-bold">Observação sobre o recebimento<textarea
+            v-model="paymentConfirmation.receipt_note"
             required
             minlength="3"
-            maxlength="100"
+            maxlength="500"
+            rows="3"
             class="field"
-          ></label>
-        </div>
-        <label class="mt-4 flex items-start gap-3 text-sm"><input
-          v-model="paymentConfirmation.customer_authorized"
-          required
-          type="checkbox"
-          class="mt-1"
-        ><span>Confirmo que o cliente autorizou o cadastro e que conferi o recebimento deste pagamento.</span></label>
-        <AppButton
-          class="mt-4"
-          type="submit"
-          :disabled="confirmingPayment"
-        >
-          {{ confirmingPayment ? 'Confirmando...' : 'Confirmar e matricular' }}
-        </AppButton>
-      </form>
+            placeholder="Ex.: recebido por transferência na conta da empresa e conferido no extrato."
+          /></label>
+          <label class="mt-4 flex items-start gap-3 text-sm"><input
+            v-model="paymentConfirmation.customer_authorized"
+            required
+            type="checkbox"
+            class="mt-1"
+          ><span>Confirmo que o cliente autorizou o cadastro e que conferi o recebimento deste pagamento.</span></label>
+          <AppButton
+            class="mt-4"
+            type="submit"
+            :disabled="confirmingPayment"
+          >
+            {{ confirmingPayment ? 'Confirmando...' : 'Confirmar e matricular' }}
+          </AppButton>
+        </form>
+      </div>
     </div>
     <div class="mt-5 grid gap-4 md:hidden">
       <article
@@ -468,7 +485,18 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
             <p class="mt-1 text-sm text-muted">
               {{ phone(item.phone) }}
             </p>
-          </div><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge>
+          </div><div class="flex flex-col items-end gap-2">
+            <AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge>
+            <button
+              v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT', 'EXPIRED'].includes(item.paymentStatus)"
+              type="button"
+              class="rounded-lg bg-primary-700 px-3 py-2 text-xs font-bold text-white hover:bg-primary-800 disabled:opacity-50"
+              :disabled="confirmingPayment"
+              @click="openPaymentConfirmation(item)"
+            >
+              Confirmar recebimento
+            </button>
+          </div>
         </div>
         <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
           <div>
@@ -493,13 +521,6 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           </div>
         </dl>
         <div class="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-          <AdminIconAction
-            v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT', 'EXPIRED'].includes(item.paymentStatus)"
-            label="Confirmar pagamento e matricular"
-            icon="payment"
-            :disabled="confirmingPayment"
-            @click="openPaymentConfirmation(item)"
-          />
           <AdminIconAction
             v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT'].includes(item.paymentStatus)"
             label="Obter QR Code Pix"
@@ -569,15 +590,22 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           >
             <td class="p-4 font-bold">
               {{ item.name }}
-            </td><td>{{ item.email }}</td><td>{{ phone(item.phone) }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td><AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge></td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
-              <div class="flex flex-wrap gap-2">
-                <AdminIconAction
+            </td><td>{{ item.email }}</td><td>{{ phone(item.phone) }}</td><td>{{ date(item.registeredAt) }}</td><td>{{ item.paymentStatus }}</td><td>
+              <div class="flex flex-col items-start gap-2">
+                <AppBadge>{{ item.enrollmentStatus ?? 'Não matriculado' }}</AppBadge>
+                <button
                   v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT', 'EXPIRED'].includes(item.paymentStatus)"
-                  label="Confirmar pagamento e matricular"
-                  icon="payment"
+                  type="button"
+                  class="rounded-lg bg-primary-700 px-3 py-2 text-xs font-bold text-white hover:bg-primary-800 disabled:opacity-50"
                   :disabled="confirmingPayment"
                   @click="openPaymentConfirmation(item)"
-                /><AdminIconAction
+                >
+                  Confirmar recebimento
+                </button>
+              </div>
+            </td><td>{{ item.eventCredentials[0]?.status ?? '—' }}</td><td>{{ item.attendance.some(entry => entry.status === 'PRESENT') ? 'Realizado' : '—' }}</td><td class="p-4">
+              <div class="flex flex-wrap gap-2">
+                <AdminIconAction
                   v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT'].includes(item.paymentStatus)"
                   label="Obter QR Code Pix"
                   icon="qrcode"

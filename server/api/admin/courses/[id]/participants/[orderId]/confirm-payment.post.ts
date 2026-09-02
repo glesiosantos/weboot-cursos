@@ -6,6 +6,7 @@ import { requireRole } from '../../../../../../utils/auth'
 const schema = z.object({
   payment_method: z.enum(['PIX', 'TRANSFER', 'CASH', 'OTHER']),
   payment_reference: z.string().trim().min(3, 'Informe a referência do pagamento').max(100),
+  receipt_note: z.string().trim().min(3, 'Informe onde ou como o valor foi recebido').max(500),
   amount_received: z.coerce.number().positive('Informe o valor recebido'),
   customer_authorized: z.literal(true, 'Confirme a autorização do cliente'),
 }).strict()
@@ -52,7 +53,7 @@ export default defineEventHandler(async (event) => {
   })
   const { error: auditError } = await admin.from('audit_logs').insert({
     user_id: user.sub, action: 'MANUAL_ENROLLMENT_PAYMENT_CONFIRMED', entity: 'enrollment', entity_id: result.enrollmentId,
-    metadata: { order_id: orderId, course_id: courseId, payment_method: parsed.data.payment_method, payment_reference: parsed.data.payment_reference, amount_received: parsed.data.amount_received },
+    metadata: { order_id: orderId, course_id: courseId, payment_method: parsed.data.payment_method, payment_reference: parsed.data.payment_reference, receipt_note: parsed.data.receipt_note, amount_received: parsed.data.amount_received },
   })
   return { enrollmentId: result.enrollmentId, passwordSetupSent: result.passwordSetupSent, auditLogged: !auditError }
 })
