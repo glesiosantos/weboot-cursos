@@ -107,7 +107,7 @@ const confirmParticipantPayment = async () => {
   actionMessage.value = ''
   actionError.value = ''
   try {
-    await $fetch(String(`/api/admin/courses/${courseId}/participants/${selectedParticipant.value.id}/confirm-payment`), { method: 'POST', body: paymentConfirmation })
+    await $fetch(String(`/api/admin/courses/${courseId}/manual-payment/${selectedParticipant.value.id}`), { method: 'POST', body: paymentConfirmation })
     actionMessage.value = `${selectedParticipant.value.name} teve o pagamento confirmado e foi matriculado.`
     selectedParticipant.value = null
     await refresh()

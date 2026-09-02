@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 const page = readFileSync('app/pages/admin/cursos/[id]/inscritos.vue', 'utf8')
 const confirmation = readFileSync('server/api/admin/courses/[id]/participants/[orderId]/confirm-payment.post.ts', 'utf8')
+const manualPaymentAlias = readFileSync('server/api/admin/courses/[id]/manual-payment/[orderId].post.ts', 'utf8')
 const pix = readFileSync('server/api/admin/courses/[id]/participants/[orderId]/pix.post.ts', 'utf8')
 
 describe('admin participant payment actions', () => {
@@ -13,6 +14,7 @@ describe('admin participant payment actions', () => {
     expect(confirmation).toContain('receipt_note')
     expect(confirmation).toContain('payment_provider: \'MANUAL\'')
     expect(confirmation).toContain('completeCommercialOrder')
+    expect(manualPaymentAlias).toContain('../participants/[orderId]/confirm-payment.post')
   })
 
   it('loads or creates Mercado Pago Pix for the selected order', () => {
