@@ -21,7 +21,9 @@ const creatingEnrollment = ref(false)
 const manualEnrollment = reactive({ full_name: '', cpf: '', email: '', whatsapp: '', payment_method: 'PIX' as 'PIX' | 'TRANSFER' | 'CASH' | 'OTHER', payment_reference: '', amount_received: '', customer_authorized: false })
 const selectedParticipant = ref<Participant | null>(null)
 const confirmingPayment = ref(false)
+const loadingPixId = ref<string | null>(null)
 const paymentConfirmation = reactive({ payment_method: 'PIX' as 'PIX' | 'TRANSFER' | 'CASH' | 'OTHER', payment_reference: '', amount_received: '', customer_authorized: false })
+const pix = ref<{ paymentId: string, encodedImage: string, payload: string, expirationDate?: string } | null>(null)
 const filtered = computed(() => (dashboard.value?.participants ?? []).filter((item) => {
   const term = search.value.trim().toLocaleLowerCase('pt-BR')
   const matchesTerm = !term || `${item.name} ${item.email} ${item.phone} ${item.eventCredentials[0]?.code ?? ''}`.toLocaleLowerCase('pt-BR').includes(term)
@@ -90,11 +92,13 @@ const createManualEnrollment = async () => {
 }
 const openPaymentConfirmation = (participant: Participant) => {
   selectedParticipant.value = participant
+  pix.value = null
   Object.assign(paymentConfirmation, { payment_method: 'PIX', payment_reference: '', amount_received: participant.total.toFixed(2), customer_authorized: false })
 }
 const closeParticipantAction = () => {
-  if (confirmingPayment.value) { return }
+  if (confirmingPayment.value || loadingPixId.value) { return }
   selectedParticipant.value = null
+  pix.value = null
 }
 const confirmParticipantPayment = async () => {
   if (!selectedParticipant.value) { return }
@@ -112,6 +116,33 @@ const confirmParticipantPayment = async () => {
   }
   finally {
     confirmingPayment.value = false
+  }
+}
+const loadParticipantPix = async (participant: Participant) => {
+  selectedParticipant.value = participant
+  pix.value = null
+  loadingPixId.value = participant.id
+  actionMessage.value = ''
+  actionError.value = ''
+  try {
+    pix.value = await $fetch<{ paymentId: string, encodedImage: string, payload: string, expirationDate?: string }>(String(`/api/admin/courses/${courseId}/participants/${participant.id}/pix`), { method: 'POST' })
+    await refresh()
+  }
+  catch (error) {
+    actionError.value = apiErrorMessage(error, 'Não foi possível obter o QR Code Pix.')
+  }
+  finally {
+    loadingPixId.value = null
+  }
+}
+const copyPix = async () => {
+  if (!pix.value?.payload) { return }
+  try {
+    await navigator.clipboard.writeText(pix.value.payload)
+    actionMessage.value = 'Código Pix copiado. Agora você pode enviá-lo ao aluno.'
+  }
+  catch {
+    actionError.value = 'Não foi possível copiar automaticamente. Selecione o código Pix abaixo.'
   }
 }
 const cards = computed(() => [
@@ -330,7 +361,7 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 class="text-xl font-black">
-            Confirmar pagamento recebido
+            {{ pix ? 'Pix para enviar ao aluno' : 'Confirmar pagamento recebido' }}
           </h2>
           <p class="mt-1 text-sm text-muted">
             {{ selectedParticipant.name }} · {{ selectedParticipant.email }} · {{ money(selectedParticipant.total) }}
@@ -344,7 +375,40 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
           Fechar
         </button>
       </div>
+      <div
+        v-if="pix"
+        class="mt-5 grid gap-5 lg:grid-cols-[240px_1fr]"
+      >
+        <img
+          :src="`data:image/png;base64,${pix.encodedImage}`"
+          alt="QR Code Pix"
+          class="mx-auto size-60 rounded-xl border border-border bg-white p-2"
+        >
+        <div class="min-w-0">
+          <label class="text-sm font-bold">Pix Copia e Cola<textarea
+            :value="pix.payload"
+            readonly
+            rows="6"
+            class="field break-all font-mono text-xs"
+            @focus="($event.target as HTMLTextAreaElement).select()"
+          /></label>
+          <p
+            v-if="pix.expirationDate"
+            class="mt-2 text-sm text-muted"
+          >
+            Válido até {{ new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(pix.expirationDate)) }}.
+          </p>
+          <AppButton
+            class="mt-4"
+            type="button"
+            @click="copyPix"
+          >
+            Copiar código Pix
+          </AppButton>
+        </div>
+      </div>
       <form
+        v-else
         class="mt-5"
         @submit.prevent="confirmParticipantPayment"
       >
@@ -437,6 +501,13 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
             @click="openPaymentConfirmation(item)"
           />
           <AdminIconAction
+            v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT'].includes(item.paymentStatus)"
+            label="Obter QR Code Pix"
+            icon="qrcode"
+            :disabled="loadingPixId === item.id"
+            @click="loadParticipantPix(item)"
+          />
+          <AdminIconAction
             v-if="item.eventCredentials[0]?.status === 'ACTIVE'"
             :to="`/admin/cursos/${courseId}/checkin?codigo=${encodeURIComponent(item.eventCredentials[0].code)}`"
             label="Registrar entrada"
@@ -506,6 +577,12 @@ useSeoMeta({ title: () => `${dashboard.value?.course.title ?? 'Curso'} | Alunos`
                   icon="payment"
                   :disabled="confirmingPayment"
                   @click="openPaymentConfirmation(item)"
+                /><AdminIconAction
+                  v-if="dashboard?.canManualEnroll && !item.enrollmentId && ['PENDING', 'WAITING_PAYMENT'].includes(item.paymentStatus)"
+                  label="Obter QR Code Pix"
+                  icon="qrcode"
+                  :disabled="loadingPixId === item.id"
+                  @click="loadParticipantPix(item)"
                 /><AdminIconAction
                   v-if="item.eventCredentials[0]?.status === 'ACTIVE'"
                   :to="`/admin/cursos/${courseId}/checkin?codigo=${encodeURIComponent(item.eventCredentials[0].code)}`"

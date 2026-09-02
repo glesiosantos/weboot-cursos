@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'materials' | 'bell' | 'checkin' | 'key' | 'ticket' | 'trash' | 'payment' }>()
+defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'materials' | 'bell' | 'checkin' | 'key' | 'ticket' | 'trash' | 'payment' | 'qrcode' }>()
 </script>
 
 <template>
@@ -51,6 +51,25 @@ defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' 
       height="14"
       rx="2"
     /><path d="M2 10h20M6 15h2" /></template>
+    <template v-else-if="name === 'qrcode'"><rect
+      x="3"
+      y="3"
+      width="7"
+      height="7"
+      rx="1"
+    /><rect
+      x="14"
+      y="3"
+      width="7"
+      height="7"
+      rx="1"
+    /><rect
+      x="3"
+      y="14"
+      width="7"
+      height="7"
+      rx="1"
+    /><path d="M14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 18v3" /></template>
     <template v-else><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></template>
   </svg>
 </template>
