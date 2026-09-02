@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'materials' | 'bell' | 'checkin' | 'key' | 'ticket' | 'trash' }>()
+defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' | 'archive' | 'unarchive' | 'materials' | 'bell' | 'checkin' | 'key' | 'ticket' | 'trash' | 'payment' | 'qrcode' }>()
 </script>
 
 <template>
@@ -44,6 +44,32 @@ defineProps<{ name: 'edit' | 'users' | 'eye' | 'copy' | 'publish' | 'unpublish' 
     /><path d="m11 12 9-9M15 8l3 3M17 6l3 3" /></template>
     <template v-else-if="name === 'ticket'"><path d="M3 7a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-3a2 2 0 0 0 0-4Z" /><path d="M13 5v2M13 17v2M13 11v2" /></template>
     <template v-else-if="name === 'trash'"><path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v5M14 11v5" /></template>
+    <template v-else-if="name === 'payment'"><rect
+      x="2"
+      y="5"
+      width="20"
+      height="14"
+      rx="2"
+    /><path d="M2 10h20M6 15h2" /></template>
+    <template v-else-if="name === 'qrcode'"><rect
+      x="3"
+      y="3"
+      width="7"
+      height="7"
+      rx="1"
+    /><rect
+      x="14"
+      y="3"
+      width="7"
+      height="7"
+      rx="1"
+    /><rect
+      x="3"
+      y="14"
+      width="7"
+      height="7"
+      rx="1"
+    /><path d="M14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 18v3" /></template>
     <template v-else><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></template>
   </svg>
 </template>
