@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
     .select('id,course_id,status,total,payment_provider,provider_payment_id').eq('id', orderId).eq('course_id', courseId).single()
   if (error || !order) { throw createError({ statusCode: 404, statusMessage: 'Inscrição não encontrada' }) }
   if (order.status === 'PAID') { throw createError({ statusCode: 409, statusMessage: 'Este pagamento já foi confirmado' }) }
-  if (!['PENDING', 'WAITING_PAYMENT', 'EXPIRED'].includes(order.status)) {
+  if (!['PENDING', 'WAITING_PAYMENT', 'EXPIRED', 'CANCELED'].includes(order.status)) {
     throw createError({ statusCode: 409, statusMessage: 'Esta inscrição não pode ser confirmada' })
   }
   if (order.provider_payment_id && order.payment_provider !== 'MANUAL') {
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
   const externalPaymentId = `manual:${parsed.data.payment_reference}`
   const { data: linkedOrder, error: linkError } = await admin.from('orders').update({
     payment_provider: 'MANUAL', provider_payment_id: externalPaymentId,
-  }).eq('id', orderId).eq('course_id', courseId).in('status', ['PENDING', 'WAITING_PAYMENT', 'EXPIRED'])
+  }).eq('id', orderId).eq('course_id', courseId).in('status', ['PENDING', 'WAITING_PAYMENT', 'EXPIRED', 'CANCELED'])
     .select('id').single()
   if (linkError || !linkedOrder) {
     if (linkError?.code === '23505') { throw createError({ statusCode: 409, statusMessage: 'Esta referência de pagamento já foi utilizada' }) }
