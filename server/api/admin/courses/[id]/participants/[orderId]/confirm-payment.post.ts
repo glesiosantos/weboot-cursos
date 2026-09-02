@@ -29,9 +29,8 @@ export default defineEventHandler(async (event) => {
   if (!['PENDING', 'WAITING_PAYMENT', 'EXPIRED', 'CANCELED'].includes(order.status)) {
     throw createError({ statusCode: 409, statusMessage: 'Esta inscrição não pode ser confirmada' })
   }
-  if (order.provider_payment_id && order.payment_provider !== 'MANUAL') {
-    throw createError({ statusCode: 409, statusMessage: 'Este pedido possui uma cobrança vinculada. Confirme-a pelo provedor original.' })
-  }
+  // A confirmação manual autorizada pelo administrador pode substituir uma
+  // cobrança criada no Mercado Pago quando o valor foi recebido por fora.
   if (Math.abs(Number(order.total) - parsed.data.amount_received) > 0.009) {
     throw createError({ statusCode: 409, statusMessage: `O valor recebido deve ser ${Number(order.total).toFixed(2)}` })
   }

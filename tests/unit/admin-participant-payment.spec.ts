@@ -15,6 +15,7 @@ describe('admin participant payment actions', () => {
     expect(confirmation).toContain('payment_provider: \'MANUAL\'')
     expect(confirmation).toContain('completeCommercialOrder')
     expect(confirmation).toContain('CANCELED')
+    expect(confirmation).toContain('substituir uma')
     expect(manualPaymentAlias).toContain('../participants/[orderId]/confirm-payment.post')
   })
 
