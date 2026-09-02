@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 const page = readFileSync('app/pages/admin/cursos/[id]/inscritos.vue', 'utf8')
 const confirmation = readFileSync('server/api/admin/courses/[id]/participants/[orderId]/confirm-payment.post.ts', 'utf8')
 const manualPaymentAlias = readFileSync('server/api/admin/courses/[id]/manual-payment/[orderId].post.ts', 'utf8')
+const manualCanceledMigration = readFileSync('supabase/migrations/20260902000200_allow_manual_canceled_payment.sql', 'utf8')
 const pix = readFileSync('server/api/admin/courses/[id]/participants/[orderId]/pix.post.ts', 'utf8')
 
 describe('admin participant payment actions', () => {
@@ -16,6 +17,7 @@ describe('admin participant payment actions', () => {
     expect(confirmation).toContain('completeCommercialOrder')
     expect(confirmation).toContain('CANCELED')
     expect(confirmation).toContain('substituir uma')
+    expect(manualCanceledMigration).toContain('target_order.status = \'REFUNDED\'')
     expect(manualPaymentAlias).toContain('../participants/[orderId]/confirm-payment.post')
   })
 
