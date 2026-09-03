@@ -12,7 +12,7 @@ Somente `course-covers` é público. Materiais, vídeos, certificados e avatares
 
 ## Secrets e integrações
 
-Service role e chaves Asaas usam apenas variáveis privadas. Nunca usar prefixo `NUXT_PUBLIC_` para elas. O Asaas inicia no Sandbox. Logs não podem conter cookies, tokens, chaves, senhas ou dados de cartão.
+Service role, Access Token e assinatura secreta do Mercado Pago usam apenas variáveis privadas. Nunca usar prefixo `NUXT_PUBLIC_` para elas. A homologação começa com credenciais de teste. Logs não podem conter cookies, tokens, chaves, senhas ou CPF.
 
 ## Headers e entradas
 

@@ -1,22 +1,23 @@
 import { completeCommercialOrder } from '../../../services/complete-order.service'
-import { AsaasTransparentPaymentProvider } from '../../../services/asaas-transparent-payment.provider'
+import { MercadoPagoPaymentProvider } from '../../../services/mercado-pago-payment.provider'
 import { loadPaymentContext } from '../../../utils/payment'
 
-const confirmedStatuses = new Set(['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH'])
+const confirmedStatuses = new Set(['approved'])
 
 export default defineEventHandler(async (event) => {
   const context = await loadPaymentContext(event)
-  if (context.order.status === 'PAID' || !context.order.asaas_payment_id) {
+  if (context.order.status === 'PAID' || !context.order.provider_payment_id) {
     return { status: context.order.status }
   }
   if (context.order.status !== 'WAITING_PAYMENT') {
     return { status: context.order.status }
   }
-  const paymentId = String(context.order.asaas_payment_id)
+  if (context.order.payment_provider !== 'MERCADO_PAGO') { return { status: context.order.status } }
+  const paymentId = String(context.order.provider_payment_id)
 
   const config = useRuntimeConfig(event)
-  if (!config.asaasApiKey) { throw createError({ statusCode: 503, statusMessage: 'Pagamento não configurado' }) }
-  const provider = new AsaasTransparentPaymentProvider(String(config.asaasApiUrl), String(config.asaasApiKey))
+  if (!config.mercadoPagoAccessToken) { throw createError({ statusCode: 503, statusMessage: 'Pagamento não configurado' }) }
+  const provider = new MercadoPagoPaymentProvider(String(config.mercadoPagoAccessToken))
   const payment = await provider.getPayment(paymentId)
 
   if (payment.externalReference !== context.order.id || payment.id !== paymentId) {
