@@ -64,8 +64,8 @@ describe('sales dashboard and student materials', () => {
 
   it('checks active ownership before creating temporary material links', () => {
     expect(studentCourseApi).toContain('.eq(\'user_id\', user.sub).eq(\'status\', \'ACTIVE\')')
-    expect(studentCourseApi).toContain('createSignedUrl(material.file_path, 3600')
-    expect(studentCoursePage).toContain('Materiais do curso')
+    expect(studentCourseApi).toContain('createSignedUrl(material.file_path, 900')
+    expect(studentCoursePage).toContain('Materiais gerais')
     expect(studentCoursePage).toContain('course.coverUrl')
   })
 
