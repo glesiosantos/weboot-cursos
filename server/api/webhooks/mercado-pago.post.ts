@@ -33,7 +33,6 @@ export default defineEventHandler(async (event) => {
   if (!validateMercadoPagoSignature(getHeader(event, 'x-signature') || '', getHeader(event, 'x-request-id') || '', dataId, String(config.mercadoPagoWebhookSecret || ''))) {
     throw createError({ statusCode: 401, statusMessage: 'Webhook não autorizado' })
   }
-  if (payload.live_mode === false) { return { received: true, simulated: true } }
   if (!config.mercadoPagoAccessToken) { throw createError({ statusCode: 503, statusMessage: 'Pagamento não configurado' }) }
   const payment = await new MercadoPagoPaymentProvider(String(config.mercadoPagoAccessToken)).getPayment(dataId)
   if (!payment.externalReference) { return { received: true, ignored: true } }

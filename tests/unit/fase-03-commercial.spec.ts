@@ -58,9 +58,9 @@ describe('Fase 03 commercial contract', () => {
   it('authenticates and deduplicates webhooks before idempotent effects', () => {
     expect(webhook).toContain('getHeader(event, \'x-signature\')')
     expect(webhook).toContain('createHmac(\'sha256\'')
-    expect(webhook).toContain('payload.live_mode === false')
-    expect(webhook.indexOf('payload.live_mode === false')).toBeGreaterThan(webhook.indexOf('validateMercadoPagoSignature'))
-    expect(webhook.indexOf('payload.live_mode === false')).toBeLessThan(webhook.indexOf('getPayment(dataId)'))
+    // Pagamentos de homologacao tambem precisam concluir o fluxo. A seguranca
+    // vem da assinatura e da consulta autoritativa do pagamento no provedor.
+    expect(webhook).not.toContain('payload.live_mode === false')
     expect(webhook).toContain('eventError?.code === \'23505\'')
     expect(webhook).toContain('existing?.status === \'PROCESSED\'')
     expect(webhook).toContain('payment.status === \'approved\'')
