@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { serverSupabaseServiceRole } from '#supabase/server'
 import { AsaasTransparentPaymentProvider } from '../services/asaas-transparent-payment.provider'
+import { MercadoPagoPaymentProvider, type MercadoPagoPayer } from '../services/mercado-pago-payment.provider'
 import { sha256 } from './commercial'
 import { revealRegistrationCpf } from './registration'
 
@@ -19,18 +20,31 @@ export const loadPaymentContext = async (event: H3Event) => {
   return { admin, contact, order, reference }
 }
 
+export const loadMercadoPagoProvider = (event: H3Event) => {
+  const config = useRuntimeConfig(event)
+  return new MercadoPagoPaymentProvider(String(config.mercadoPagoAccessToken || ''))
+}
+
 export const ensureAsaasCustomer = async (event: H3Event, context: Awaited<ReturnType<typeof loadPaymentContext>>) => {
   const config = useRuntimeConfig(event)
-  if (!config.asaasApiKey) { throw createError({ statusCode: 503, statusMessage: 'Pagamento não configurado' }) }
+  if (!config.asaasApiKey) { throw createError({ statusCode: 503, statusMessage: 'Credencial legada do Asaas não configurada' }) }
   const provider = new AsaasTransparentPaymentProvider(String(config.asaasApiUrl), String(config.asaasApiKey))
-  if (context.contact.asaas_customer_id) { return { provider, customerId: context.contact.asaas_customer_id as string } }
-  const cpf = revealRegistrationCpf(context.contact.cpf_encrypted, String(config.registrationDataKey || ''))
+  if (context.contact.asaas_customer_id) { return { provider, customerId: String(context.contact.asaas_customer_id) } }
   const customerId = await provider.createCustomer({
-    name: context.contact.full_name, cpfCnpj: cpf, email: context.contact.email,
-    mobilePhone: context.contact.whatsapp.replace(/\D/g, ''),
-    externalReference: context.contact.id,
+    name: context.contact.full_name,
+    cpfCnpj: revealRegistrationCpf(context.contact.cpf_encrypted, String(config.registrationDataKey || '')),
+    email: context.contact.email, mobilePhone: context.contact.whatsapp.replace(/\D/g, ''), externalReference: context.contact.id,
   })
   const { error } = await context.admin.from('registration_contacts').update({ asaas_customer_id: customerId }).eq('id', context.contact.id)
   if (error) { throw error }
   return { provider, customerId }
+}
+
+export const mercadoPagoPayer = (context: Awaited<ReturnType<typeof loadPaymentContext>>, dataKey: string): MercadoPagoPayer => {
+  const names = String(context.contact.full_name).trim().split(/\s+/)
+  return {
+    email: String(context.contact.email), firstName: names[0] || 'Cliente',
+    lastName: names.slice(1).join(' ') || 'WeBoot',
+    cpf: revealRegistrationCpf(context.contact.cpf_encrypted, dataKey).replace(/\D/g, ''),
+  }
 }
