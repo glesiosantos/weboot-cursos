@@ -38,8 +38,9 @@ Copie a URL e as chaves locais exibidas pelo Supabase para `.env`. Nunca version
 - `NUXT_PUBLIC_SUPABASE_URL` e `NUXT_PUBLIC_SUPABASE_KEY`: endpoint e chave anon usados pelo módulo Supabase
 - `NUXT_SUPABASE_SECRET_KEY`: chave secreta esperada internamente pelo módulo, somente servidor
 - `NUXT_PUBLIC_APP_URL`: origem pública da aplicação
-- `NUXT_MERCADO_PAGO_ACCESS_TOKEN`: credencial privada da aplicação Mercado Pago
-- `NUXT_MERCADO_PAGO_WEBHOOK_SECRET`, `NUXT_MERCADO_PAGO_WEBHOOK_URL`: assinatura secreta e endpoint HTTPS das notificações de pagamento
+- `NUXT_MERCADO_PAGO_ACCESS_TOKEN` e `NUXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY`: credenciais do checkout, use pares de teste em homologação
+- `NUXT_MERCADO_PAGO_WEBHOOK_SECRET` e `NUXT_MERCADO_PAGO_WEBHOOK_URL`: validação/URL do webhook de pagamentos
+- `NUXT_MERCADO_PAGO_TEST_ACCESS_TOKEN` e `NUXT_PUBLIC_MERCADO_PAGO_TEST_PUBLIC_KEY`: credenciais exclusivas do simulador em `/admin/pagamentos`
 
 Em desenvolvimento, staging e produção use projetos Supabase separados. Testes nunca devem apontar para produção.
 

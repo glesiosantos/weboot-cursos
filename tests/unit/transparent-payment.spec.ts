@@ -16,19 +16,23 @@ describe('transparent payment', () => {
     const page = readFileSync('app/pages/pagamento/[reference].vue', 'utf8')
     const endpoint = readFileSync('server/api/payments/[reference].get.ts', 'utf8')
     expect(endpoint).toContain('has_open_pix:')
-    expect(page).toContain('if (checkout.value?.has_open_pix) { void pay() }')
+    expect(page).toContain('if (checkout.value?.has_open_pix) { void payPix() }')
     expect(page).toContain('!checkout?.has_open_pix')
   })
-  it('offers only Pix and blocks direct card payment attempts', () => {
+  it('offers Pix and Mercado Pago card payments', () => {
     const page = readFileSync('app/pages/pagamento/[reference].vue', 'utf8')
     const checkoutEndpoint = readFileSync('server/api/payments/[reference].get.ts', 'utf8')
     const endpoint = readFileSync('server/api/payments/[reference]/card.post.ts', 'utf8')
-    expect(page).not.toContain('CARTÃO')
-    expect(page).not.toContain('CREDIT_CARD')
-    expect(page).not.toContain('/card`')
-    expect(checkoutEndpoint).not.toContain('card:')
-    expect(endpoint).toContain('statusCode: 410')
-    expect(endpoint).toContain('Utilize Pix')
+    const cardProvider = readFileSync('server/services/mercado-pago-payment.provider.ts', 'utf8')
+    expect(page).toContain('CARTÃO')
+    expect(page).toContain('CREDIT_CARD')
+    expect(page).toContain('/card`')
+    expect(checkoutEndpoint).toContain('card: Array.from')
+    expect(endpoint).toContain('paymentMethodId: parsed.data.payment_method_id')
+    expect(cardProvider).toContain('X-Idempotency-Key')
+    expect(cardProvider).toContain('token: input.token')
+    expect(endpoint).not.toContain('number:')
+    expect(endpoint).not.toContain('ccv:')
   })
   it('refreshes the order until payment is confirmed and presents first-access instructions', () => {
     const page = readFileSync('app/pages/pagamento/[reference].vue', 'utf8')
@@ -39,12 +43,17 @@ describe('transparent payment', () => {
     expect(page).toContain('instruções de primeiro acesso')
     expect(page).toContain('clearInterval(paymentStatusTimer)')
   })
-  it('charges exactly the course or batch price on Pix', () => {
+  it('charges the configured Pix fee and keeps card installments at the provider amount', () => {
     expect(paymentPrice(100, 'PIX', 1, config)).toEqual({
       base: 100, providerFee: 0, serviceFee: 0, total: 100, percent: 0, installments: 1,
     })
   })
 
+  it('charges the same configured card amount for the available installments', () => {
+    expect(paymentPrice(100, 'CREDIT_CARD', 1, config).total).toBe(100)
+    expect(paymentPrice(100, 'CREDIT_CARD', 2, config).total).toBe(100)
+    expect(paymentPrice(100, 'CREDIT_CARD', 6, config).total).toBe(100)
+  })
   it('can recover the CPF only on the server with the encryption key', () => {
     const key = 'a'.repeat(32)
     const protectedCpf = protectRegistration('52998224725', key)

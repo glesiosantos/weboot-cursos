@@ -16,6 +16,7 @@ export default defineNuxtConfig({
     mercadoPagoWebhookUrl: '',
     mercadoPagoPixPercent: 0,
     mercadoPagoPixFixed: 0,
+    mercadoPagoTestAccessToken: '',
     paymentServiceFee: 0,
     registrationDataKey: '',
     notificationWebhookUrl: '',
@@ -26,7 +27,7 @@ export default defineNuxtConfig({
     smtpUser: '',
     smtpPassword: '',
     smtpFrom: '',
-    public: { appUrl: 'http://localhost:3000' },
+    public: { appUrl: 'http://localhost:3000', mercadoPagoPublicKey: '', mercadoPagoTestPublicKey: '' },
   },
   routeRules: {
     '/admin/**': { headers: { 'X-Robots-Tag': 'noindex, nofollow' } },

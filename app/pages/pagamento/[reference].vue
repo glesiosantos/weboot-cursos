@@ -3,37 +3,53 @@ const route = useRoute()
 const reference = encodeURIComponent(String(route.params.reference))
 type Price = { base: number, providerFee: number, serviceFee: number, total: number, installments: number }
 type PixResponse = { encodedImage: string, payload: string, expirationDate?: string }
-type Checkout = { status: string, has_open_pix: boolean, course_title: string, expires_at: string, prices: { pix: Price } }
+type Checkout = { status: string, has_open_pix: boolean, course_title: string, expires_at: string, mercado_pago_public_key: string, payer_email: string, payer_cpf: string, prices: { pix: Price, card: Price[] } }
+type PaymentResponse = { payment_id?: string, status?: string, status_detail?: string, paid?: boolean }
 const { data: checkout, refresh: refreshCheckout } = await useFetch<Checkout>(`/api/payments/${reference}`)
 if (!checkout.value) { throw createError({ statusCode: 404, statusMessage: 'Pagamento não encontrado' }) }
 
+const method = ref<'PIX' | 'CREDIT_CARD'>('PIX')
 const loading = ref(false)
 const errorMessage = ref('')
-const pix = ref<{ encodedImage: string, payload: string, expirationDate?: string } | null>(null)
+const infoMessage = ref('')
+const pix = ref<PixResponse | null>(null)
+const cardSubmitted = ref(false)
 const paymentConfirmed = computed(() => checkout.value?.status === 'PAID')
 const currency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
-const pay = async () => {
+const payPix = async () => {
   loading.value = true
   errorMessage.value = ''
-  try {
-    pix.value = await $fetch<PixResponse>(String(`/api/payments/${reference}/pix`), { method: 'POST' })
-  }
+  try { pix.value = await $fetch<PixResponse>(String(`/api/payments/${reference}/pix`), { method: 'POST' }) }
   catch (error: unknown) {
-    const fetchError = error as { data?: { statusMessage?: string } }
-    errorMessage.value = fetchError.data?.statusMessage ?? 'Não foi possível processar o pagamento.'
+    errorMessage.value = (error as { data?: { statusMessage?: string } }).data?.statusMessage ?? 'Não foi possível processar o Pix.'
   }
   finally { loading.value = false }
 }
-const copyPix = async () => { if (pix.value?.payload) { await navigator.clipboard.writeText(pix.value.payload) } }
+
+const payCard = async (card: { token: string, payment_method_id: string, issuer_id?: string, installments: number }) => {
+  loading.value = true
+  errorMessage.value = ''
+  infoMessage.value = ''
+  try {
+    const result = await $fetch<PaymentResponse>(`/api/payments/${reference}/card`, { method: 'POST', body: card })
+    cardSubmitted.value = true
+    infoMessage.value = result.status === 'approved' ? 'Cartão aprovado. Confirmando sua inscrição com segurança…' : `Cartão enviado ao Mercado Pago (${result.status ?? 'em análise'}). A confirmação pode levar alguns instantes.`
+    await refreshPaymentStatus()
+  }
+  catch (error: unknown) {
+    errorMessage.value = (error as { data?: { statusMessage?: string } }).data?.statusMessage ?? 'Não foi possível processar o cartão.'
+  }
+  finally { loading.value = false }
+}
+
+const copyPix = async () => {
+  if (pix.value?.payload) { await navigator.clipboard.writeText(pix.value.payload); infoMessage.value = 'Código Pix copiado.' }
+}
 let paymentStatusTimer: ReturnType<typeof setInterval> | undefined
 const refreshPaymentStatus = async () => {
-  try {
-    await $fetch(`/api/payments/${reference}/sync`, { method: 'POST' })
-  }
-  catch {
-    // O webhook continua sendo a fonte principal; uma consulta pontual pode falhar temporariamente.
-  }
+  try { await $fetch(`/api/payments/${reference}/sync`, { method: 'POST' }) }
+  catch { /* O webhook é a confirmação principal; a consulta pode falhar temporariamente. */ }
   await refreshCheckout()
   if (paymentConfirmed.value && paymentStatusTimer) {
     clearInterval(paymentStatusTimer)
@@ -41,10 +57,8 @@ const refreshPaymentStatus = async () => {
   }
 }
 onMounted(() => {
-  if (checkout.value?.has_open_pix) { void pay() }
-  if (!paymentConfirmed.value) {
-    paymentStatusTimer = setInterval(() => { void refreshPaymentStatus() }, 5000)
-  }
+  if (checkout.value?.has_open_pix) { void payPix() }
+  if (!paymentConfirmed.value) { paymentStatusTimer = setInterval(() => { void refreshPaymentStatus() }, 5000) }
 })
 onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTimer) } })
 </script>
@@ -79,66 +93,83 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
       </div>
 
       <template v-else>
-        <AppBadge>PAGAMENTO</AppBadge>
+        <AppBadge>PAGAMENTO SEGURO</AppBadge>
         <h1 class="mt-4 text-3xl font-black">
           {{ checkout?.course_title }}
         </h1>
         <p class="mt-2 text-muted">
-          Seus dados já estão preenchidos. O pagamento está disponível via Pix.
+          Escolha pagar com Pix ou cartão de crédito. A inscrição é confirmada após a validação do Mercado Pago.
         </p>
 
         <div
-          v-if="!checkout?.has_open_pix"
-          class="mt-8"
+          v-if="!checkout?.has_open_pix && !pix && !cardSubmitted"
+          class="mt-8 grid grid-cols-2 gap-3"
+          role="group"
+          aria-label="Forma de pagamento"
         >
-          <div class="rounded-xl border border-primary bg-blue-50 p-4 text-center font-bold">
+          <button
+            type="button"
+            class="rounded-xl border p-4 font-bold"
+            :class="method === 'PIX' ? 'border-primary bg-blue-50' : 'border-border'"
+            @click="method = 'PIX'; errorMessage = ''"
+          >
             PIX
-          </div>
+          </button>
+          <button
+            type="button"
+            class="rounded-xl border p-4 font-bold"
+            :class="method === 'CREDIT_CARD' ? 'border-primary bg-blue-50' : 'border-border'"
+            @click="method = 'CREDIT_CARD'; errorMessage = ''"
+          >
+            CARTÃO
+          </button>
         </div>
 
-        <form
-          v-if="!pix && !checkout?.has_open_pix"
-          class="mt-6 space-y-5"
-          @submit.prevent="pay"
+        <div
+          v-if="method === 'PIX' && !pix"
+          class="mt-6"
         >
-          <dl class="space-y-2 rounded-xl bg-slate-50 p-4 text-sm">
+          <dl class="rounded-xl bg-slate-50 p-4 text-sm">
             <div class="flex justify-between text-base font-black">
-              <dt>Total</dt><dd>{{ currency(checkout!.prices.pix.total) }}</dd>
+              <dt>Total Pix</dt><dd>{{ currency(checkout!.prices.pix.total) }}</dd>
             </div>
           </dl>
-          <p
-            v-if="errorMessage"
-            role="alert"
-            class="rounded-xl bg-red-50 p-4 text-sm text-danger"
-          >
-            {{ errorMessage }}
-          </p>
-          <AppButton
-            type="submit"
-            class="w-full"
+          <button
+            v-if="!checkout?.has_open_pix"
+            type="button"
+            class="mt-5 w-full rounded-xl bg-primary-700 px-5 py-3 font-bold text-white disabled:opacity-60"
             :disabled="loading"
+            @click="payPix"
           >
-            {{ loading ? 'PROCESSANDO…' : 'GERAR PIX' }}
-          </AppButton>
-        </form>
+            {{ loading ? 'GERANDO PIX…' : 'GERAR PIX' }}
+          </button>
+          <p
+            v-else
+            class="mt-5 text-center font-bold"
+          >
+            Carregando seu Pix em aberto…
+          </p>
+        </div>
 
         <div
-          v-if="checkout?.has_open_pix && !pix"
-          class="mt-8 text-center"
+          v-if="method === 'CREDIT_CARD' && !cardSubmitted"
+          class="mt-6"
         >
-          <p
-            v-if="loading"
-            class="font-bold"
-          >
-            Carregando Pix em aberto…
-          </p>
-          <p
-            v-if="errorMessage"
-            role="alert"
-            class="rounded-xl bg-red-50 p-4 text-sm text-danger"
-          >
-            {{ errorMessage }}
-          </p>
+          <dl class="mb-5 rounded-xl bg-slate-50 p-4 text-sm">
+            <div class="flex justify-between text-base font-black">
+              <dt>Total</dt><dd>{{ currency(checkout!.prices.card[0]!.total) }}</dd>
+            </div><p class="mt-2 text-xs text-muted">
+              As opções de parcelamento disponíveis serão exibidas pelo Mercado Pago.
+            </p>
+          </dl>
+          <MercadoPagoCardForm
+            :public-key="checkout!.mercado_pago_public_key"
+            :amount="checkout!.prices.card[0]!.total"
+            :email="checkout!.payer_email"
+            :cpf="checkout!.payer_cpf"
+            @payment="payCard"
+            @error="errorMessage = $event"
+          />
         </div>
 
         <div
@@ -156,6 +187,7 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
           <textarea
             :value="pix.payload"
             readonly
+            aria-label="Pix Copia e Cola"
             class="mt-3 h-24 w-full rounded-xl border border-border p-3 text-xs"
           />
           <AppButton
@@ -165,6 +197,28 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
             COPIAR CÓDIGO PIX
           </AppButton>
         </div>
+        <p
+          v-if="cardSubmitted && !paymentConfirmed"
+          role="status"
+          aria-live="polite"
+          class="mt-6 rounded-xl bg-blue-50 p-4 text-sm text-blue-900"
+        >
+          {{ infoMessage || 'Aguardando confirmação segura do Mercado Pago…' }}
+        </p>
+        <p
+          v-if="errorMessage"
+          role="alert"
+          class="mt-5 rounded-xl bg-red-50 p-4 text-sm text-danger"
+        >
+          {{ errorMessage }}
+        </p>
+        <p
+          v-if="infoMessage && pix"
+          role="status"
+          class="mt-4 text-sm text-green-700"
+        >
+          {{ infoMessage }}
+        </p>
       </template>
     </section>
   </main>

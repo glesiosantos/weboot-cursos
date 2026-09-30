@@ -73,6 +73,41 @@ export class MercadoPagoPaymentProvider {
     return this.normalizePayment(payload, true)
   }
 
+  async createCardPayment(input: {
+    idempotencyKey: string
+    amount: number
+    description: string
+    externalReference: string
+    notificationUrl?: string
+    token: string
+    paymentMethodId: string
+    issuerId?: string
+    installments: number
+    payer: MercadoPagoPayer
+  }) {
+    const payload = await this.request<MercadoPagoPayment>('/v1/payments', {
+      method: 'POST',
+      headers: { 'X-Idempotency-Key': input.idempotencyKey },
+      body: JSON.stringify({
+        transaction_amount: input.amount,
+        token: input.token,
+        description: input.description,
+        installments: input.installments,
+        payment_method_id: input.paymentMethodId,
+        ...(input.issuerId ? { issuer_id: input.issuerId } : {}),
+        external_reference: input.externalReference,
+        ...(input.notificationUrl ? { notification_url: input.notificationUrl } : {}),
+        payer: {
+          email: input.payer.email,
+          first_name: input.payer.firstName,
+          last_name: input.payer.lastName,
+          identification: { type: 'CPF', number: input.payer.cpf },
+        },
+      }),
+    })
+    return this.normalizePayment(payload, false)
+  }
+
   async getPayment(paymentId: string) {
     const payload = await this.request<MercadoPagoPayment>(`/v1/payments/${encodeURIComponent(paymentId)}`, { method: 'GET' })
     return this.normalizePayment(payload, false)

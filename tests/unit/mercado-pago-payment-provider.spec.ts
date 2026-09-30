@@ -35,4 +35,28 @@ describe('MercadoPagoPaymentProvider', () => {
     expect(payment).toMatchObject({ id: '123', status: 'approved', externalReference: 'order-1', value: 100 })
     expect(fetchMock.mock.calls[0]![1]).not.toHaveProperty('body')
   })
+
+  it('creates tokenized card payments with installments, payer and idempotency', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({
+      id: 456, status: 'pending', status_detail: 'pending_review_manual',
+      external_reference: 'order-card-1', transaction_amount: 125,
+    }) })
+    vi.stubGlobal('fetch', fetchMock)
+    const provider = new MercadoPagoPaymentProvider('APP_USR-token')
+    const payment = await provider.createCardPayment({
+      idempotencyKey: 'order-card-1', amount: 125, description: 'Curso',
+      externalReference: 'order-card-1', token: 'secure-card-token', paymentMethodId: 'visa',
+      issuerId: '123', installments: 3,
+      payer: { email: 'maria@example.com', firstName: 'Maria', lastName: 'Silva', cpf: '52998224725' },
+    })
+    const [url, options] = fetchMock.mock.calls[0]!
+    expect(url).toBe('https://api.mercadopago.com/v1/payments')
+    expect(options.headers).toMatchObject({ 'authorization': 'Bearer APP_USR-token', 'X-Idempotency-Key': 'order-card-1' })
+    expect(JSON.parse(options.body)).toMatchObject({
+      transaction_amount: 125, token: 'secure-card-token', payment_method_id: 'visa', issuer_id: '123',
+      installments: 3, external_reference: 'order-card-1',
+      payer: { email: 'maria@example.com', identification: { type: 'CPF', number: '52998224725' } },
+    })
+    expect(payment).toMatchObject({ id: '456', status: 'pending', statusDetail: 'pending_review_manual' })
+  })
 })
