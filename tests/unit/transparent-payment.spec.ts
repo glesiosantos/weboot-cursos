@@ -54,7 +54,6 @@ describe('transparent payment', () => {
     expect(paymentPrice(100, 'CREDIT_CARD', 2, config).total).toBe(100)
     expect(paymentPrice(100, 'CREDIT_CARD', 6, config).total).toBe(100)
   })
-
   it('can recover the CPF only on the server with the encryption key', () => {
     const key = 'a'.repeat(32)
     const protectedCpf = protectRegistration('52998224725', key)

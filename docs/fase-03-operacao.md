@@ -20,7 +20,7 @@ Permanecem futuras: múltiplos participantes, inscrição corporativa, transfer�
 
 Configure `NUXT_MERCADO_PAGO_ACCESS_TOKEN` no servidor e `NUXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY` no frontend, sempre usando credenciais do mesmo ambiente. Configure também `NUXT_MERCADO_PAGO_WEBHOOK_SECRET`, `NUXT_MERCADO_PAGO_WEBHOOK_URL` e uma chave aleatória forte em `NUXT_REGISTRATION_DATA_KEY`. Use credenciais de teste em homologação. O Mercado Pago.js mostra as opções de parcelamento disponíveis para o cartão. As tarifas Pix opcionais podem ser definidas em `NUXT_MERCADO_PAGO_PIX_PERCENT` e `NUXT_MERCADO_PAGO_PIX_FIXED`.
 
-O simulador `/admin/pagamentos` exige perfil ADMIN e credenciais separadas `NUXT_MERCADO_PAGO_TEST_ACCESS_TOKEN` e `NUXT_PUBLIC_MERCADO_PAGO_TEST_PUBLIC_KEY`. Ele cria pagamentos avulsos no sandbox sem salvar pedidos nem confirmar matrículas. Para pedidos Pix Asaas já existentes, mantenha temporariamente `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_API_URL` e `NUXT_ASAAS_WEBHOOK_TOKEN` até que expirem ou sejam liquidados.
+O simulador `/admin/pagamentos` exige perfil ADMIN e credenciais de teste separadas `NUXT_MERCADO_PAGO_TEST_ACCESS_TOKEN` e `NUXT_PUBLIC_MERCADO_PAGO_TEST_PUBLIC_KEY`. Ele cria pagamentos avulsos no sandbox sem salvar pedidos nem confirmar matrículas.
 
 No painel de desenvolvedores do Mercado Pago, cadastre o endpoint configurado em `NUXT_MERCADO_PAGO_WEBHOOK_URL` para notificações de pagamentos e copie a chave secreta para `NUXT_MERCADO_PAGO_WEBHOOK_SECRET`. Em desenvolvimento, exponha a aplicação com um túnel HTTPS; nunca grave uma URL temporária no código.
 
@@ -37,4 +37,4 @@ No painel de desenvolvedores do Mercado Pago, cadastre o endpoint configurado em
 
 ## Validação
 
-Use `npm run lint`, `npm run typecheck`, `npm run test`, `npm run test:e2e` e `npm run build`. O simulador requer conta compradora e credenciais de teste do Mercado Pago. Testes locais sem credenciais não comprovam autorização, liquidação, webhook ou operação de produção.
+Use `npm run lint`, `npm run typecheck`, `npm run test`, `npm run test:e2e` e `npm run build`. O E2E público usa configuração local não sensível quando secrets não existem; cenários autenticados permanecem ignorados até que `E2E_*`, Supabase DEV e Mercado Pago de teste sejam configurados. Nunca interprete teste com fixture como prova de pagamento ou webhook real.

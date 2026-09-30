@@ -41,7 +41,6 @@ Copie a URL e as chaves locais exibidas pelo Supabase para `.env`. Nunca version
 - `NUXT_MERCADO_PAGO_ACCESS_TOKEN` e `NUXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY`: credenciais do checkout, use pares de teste em homologação
 - `NUXT_MERCADO_PAGO_WEBHOOK_SECRET` e `NUXT_MERCADO_PAGO_WEBHOOK_URL`: validação/URL do webhook de pagamentos
 - `NUXT_MERCADO_PAGO_TEST_ACCESS_TOKEN` e `NUXT_PUBLIC_MERCADO_PAGO_TEST_PUBLIC_KEY`: credenciais exclusivas do simulador em `/admin/pagamentos`
-- `NUXT_ASAAS_API_KEY`, `NUXT_ASAAS_API_URL`, `NUXT_ASAAS_WEBHOOK_TOKEN`: compatibilidade temporária para cobranças Asaas já abertas
 
 Em desenvolvimento, staging e produção use projetos Supabase separados. Testes nunca devem apontar para produção.
 
@@ -97,8 +96,8 @@ O E2E instala o navegador separadamente com `npx playwright install chromium`. A
 
 Importe o repositório na Vercel, defina as variáveis por ambiente e use `npm run build`. Configure URLs de redirect do Supabase para cada domínio. Chaves privadas devem existir somente nos ambientes server-side da Vercel.
 
-## Asaas e webhooks
+## Mercado Pago e webhooks
 
-A integração será implementada na Fase 3. O endpoint futuro `/api/webhooks/asaas` confirmará pagamentos de forma idempotente; retorno do navegador nunca liberará curso. Desenvolvimento e testes usarão exclusivamente o Sandbox.
+O checkout transparente cria exclusivamente Pix pela API do Mercado Pago. O endpoint `/api/webhooks/mercado-pago` valida a assinatura, consulta o pagamento diretamente no provedor e confirma valor e vínculo com o pedido antes da matrícula. O retorno do navegador nunca libera o curso.
 
 Veja [docs/security.md](docs/security.md) para o modelo de ameaças e as pendências de hardening.

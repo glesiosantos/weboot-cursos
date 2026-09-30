@@ -7,7 +7,7 @@ const identityMigration = readFileSync('supabase/migrations/20260815000100_uniqu
 const pendingOrderFix = readFileSync('supabase/migrations/20260815000200_reuse_legacy_pending_guest_orders.sql', 'utf8')
 const duplicateIdentityFix = readFileSync('supabase/migrations/20260815000300_reject_duplicate_registration_identity.sql', 'utf8')
 const endpoint = readFileSync('server/api/registrations/index.post.ts', 'utf8')
-const webhook = readFileSync('server/api/webhooks/asaas.post.ts', 'utf8')
+const webhook = readFileSync('server/api/webhooks/mercado-pago.post.ts', 'utf8')
 
 const valid = {
   course_id: 'a174f612-35c6-45c0-bf07-a0047bb6fdd3', full_name: 'Maria da Silva', cpf: '529.982.247-25',

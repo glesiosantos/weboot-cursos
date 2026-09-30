@@ -11,9 +11,6 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
     supabaseSecretKey: '',
-    asaasApiKey: '',
-    asaasApiUrl: 'https://api-sandbox.asaas.com/v3',
-    asaasWebhookToken: '',
     mercadoPagoAccessToken: '',
     mercadoPagoWebhookSecret: '',
     mercadoPagoWebhookUrl: '',

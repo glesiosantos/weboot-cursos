@@ -36,7 +36,7 @@ const submit = async () => {
     const saved = await $fetch<{ id: string }>(props.courseId ? `/api/admin/courses/${props.courseId}` : '/api/admin/courses', { method: props.courseId ? 'PUT' : 'POST', body: payload })
     dirty.value = false; message.value = 'Curso salvo com sucesso.'; emit('saved', saved.id); return true
   }
-  catch (error) { errorMessage.value = error instanceof Error ? error.message : 'Não foi possível salvar o curso.'; return false }
+  catch (error) { errorMessage.value = apiErrorMessage(error, 'Não foi possível salvar o curso.'); return false }
   finally { saving.value = false }
 }
 const openPreview = async () => {
