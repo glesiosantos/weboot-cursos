@@ -23,6 +23,13 @@ export const normalizeCredentialToken = (value: string) => {
 }
 
 export const normalizeCommercialError = (message: string) => {
+  if (message.includes('voucher invalid') || message.includes('voucher must be percentage based')) { return createError({ statusCode: 422, statusMessage: 'Voucher inválido.' }) }
+  if (message.includes('voucher requires previous enrollment')) { return createError({ statusCode: 403, statusMessage: 'Este voucher é exclusivo para alunos com matrícula anterior.' }) }
+  if (message.includes('voucher not valid for this course')) { return createError({ statusCode: 422, statusMessage: 'Este voucher não é válido para este curso.' }) }
+  if (message.includes('voucher not started')) { return createError({ statusCode: 422, statusMessage: 'Este voucher ainda não está vigente.' }) }
+  if (message.includes('voucher expired')) { return createError({ statusCode: 422, statusMessage: 'Este voucher expirou.' }) }
+  if (message.includes('voucher exhausted')) { return createError({ statusCode: 422, statusMessage: 'Este voucher atingiu o limite de usos.' }) }
+  if (message.includes('pending order has another voucher')) { return createError({ statusCode: 409, statusMessage: 'Já existe um pedido pendente com outro voucher. Aguarde a expiração antes de tentar novamente.' }) }
   if (message.includes('cpf already registered') || message.includes('registration_contacts_cpf_hash_key')) {
     return createError({ statusCode: 409, statusMessage: 'CPF já registrado.' })
   }

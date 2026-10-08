@@ -233,7 +233,9 @@ export type Database = {
       coupons: {
         Row: {
           active: boolean
+          alumni_only: boolean
           code: string
+          course_id: string | null
           created_at: string
           expires_at: string | null
           id: string
@@ -246,7 +248,9 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          alumni_only?: boolean
           code: string
+          course_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string
@@ -259,7 +263,9 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          alumni_only?: boolean
           code?: string
+          course_id?: string | null
           created_at?: string
           expires_at?: string | null
           id?: string

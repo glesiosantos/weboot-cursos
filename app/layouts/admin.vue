@@ -2,7 +2,7 @@
 const client = useSupabaseClient()
 const route = useRoute()
 const menuOpen = ref(false)
-const links = [{ l: 'Dashboard', i: '⌂', to: '/admin' }, { l: 'Cursos', i: '▤', to: '/admin/cursos' }, { l: 'Instrutores', i: '♙', to: '/admin/instrutores' }, { l: 'Alunos', i: '◎', to: '/admin/alunos' }, { l: 'Inscrições', i: '✓', to: '/admin/inscricoes' }, { l: 'Certificados', i: '◇', to: '/admin/certificados' }, { l: 'Pagamentos', i: '▣', to: '/admin/pagamentos' }, { l: 'Configurações', i: '⚙', to: '/admin/configuracoes' }]
+const links = [{ l: 'Dashboard', i: '⌂', to: '/admin' }, { l: 'Cursos', i: '▤', to: '/admin/cursos' }, { l: 'Vouchers', i: '%', to: '/admin/vouchers' }, { l: 'Instrutores', i: '♙', to: '/admin/instrutores' }, { l: 'Alunos', i: '◎', to: '/admin/alunos' }, { l: 'Inscrições', i: '✓', to: '/admin/inscricoes' }, { l: 'Certificados', i: '◇', to: '/admin/certificados' }, { l: 'Pagamentos', i: '▣', to: '/admin/pagamentos' }, { l: 'Configurações', i: '⚙', to: '/admin/configuracoes' }]
 const logout = async () => {
   await client.auth.signOut()
   await navigateTo('/login')

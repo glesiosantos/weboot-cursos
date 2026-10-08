@@ -28,6 +28,7 @@ export default defineEventHandler(async (event) => {
     accepted_terms_version: '2026-08-13',
     accepted_marketing: parsed.data.marketing_accepted,
     reservation_minutes: reservationMinutes,
+    target_coupon_code: parsed.data.voucher_code ?? null,
   })
   if (error || !data?.[0]) { throw normalizeCommercialError(error?.message ?? 'order preparation failed') }
   const order = data[0]

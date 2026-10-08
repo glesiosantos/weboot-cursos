@@ -9,6 +9,7 @@ const { data: course } = await useFetch<Course>(`/api/courses/${encodeURICompone
 if (!course.value) { throw createError({ statusCode: 404, statusMessage: 'Curso não encontrado' }) }
 const form = reactive({
   full_name: '', cpf: '', whatsapp: '', email: '', terms_accepted: false, marketing_accepted: false,
+  voucher_code: '',
 })
 if (user.value) {
   const { data: profile } = await client.from('profiles').select('name,phone').eq('id', user.value.sub).maybeSingle()
@@ -89,6 +90,9 @@ const submit = async () => {
             required
             class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
           >
+        </label>
+        <label class="block font-bold">Voucher de desconto (opcional)
+          <input v-model="form.voucher_code" name="voucher_code" maxlength="40" autocomplete="off" class="mt-2 w-full rounded-xl border border-border p-3 font-normal" placeholder="Ex.: EXALUNO20">
         </label>
         <label class="flex items-start gap-3 text-sm"><input
           v-model="form.terms_accepted"
