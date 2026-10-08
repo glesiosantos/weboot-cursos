@@ -1,7 +1,7 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { z } from 'zod'
 import type { Database } from '~/types/database.types'
-import { requireRole } from '../../../../utils/auth'
+import { requireRole } from '../../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])

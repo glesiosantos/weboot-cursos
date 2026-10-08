@@ -1,7 +1,7 @@
 import { serverSupabaseClient } from '#supabase/server'
 import { z } from 'zod'
 import type { Database } from '~/types/database.types'
-import { requireRole } from '../../../../utils/auth'
+import { requireRole } from '../../../utils/auth'
 
 const schema = z.object({
   code: z.string().trim().min(3).max(40).regex(/^[A-Za-z0-9_-]+$/).transform(value => value.toUpperCase()),
