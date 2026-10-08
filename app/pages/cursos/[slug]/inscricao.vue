@@ -24,7 +24,9 @@ const submit = async () => {
   errorMessage.value = ''
   try {
     const result = await $fetch<{ checkout_url: string }>('/api/registrations', {
-      method: 'POST', body: { course_id: course.value!.id, ...form },
+      method: 'POST', body: user.value
+        ? { course_id: course.value!.id, terms_accepted: form.terms_accepted, voucher_code: form.voucher_code || undefined }
+        : { course_id: course.value!.id, ...form },
     })
     await navigateTo(result.checkout_url, { external: result.checkout_url.startsWith('http') })
   }
@@ -42,55 +44,57 @@ const submit = async () => {
       <AppBadge>INSCRIÇÃO</AppBadge><h1 class="mt-4 text-3xl font-black">
         {{ course?.title }}
       </h1><p class="mt-2 text-muted">
-        Informe seus dados para reservar a vaga. Você não precisa criar uma conta ou senha agora.
+        {{ user ? 'Confirme a inscrição para seguir ao pagamento. Seus dados cadastrados serão usados.' : 'Informe seus dados para reservar a vaga. Você não precisa criar uma conta ou senha agora.' }}
       </p>
       <form
         class="mt-8 space-y-5"
         @submit.prevent="submit"
       >
-        <label class="block font-bold">Nome completo
-          <input
-            v-model="form.full_name"
-            name="full_name"
-            autocomplete="name"
-            required
-            minlength="6"
-            maxlength="150"
-            class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-          >
-        </label>
-        <label class="block font-bold">CPF
-          <input
-            v-model="form.cpf"
-            name="cpf"
-            inputmode="numeric"
-            autocomplete="off"
-            required
-            class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-            placeholder="000.000.000-00"
-          >
-        </label>
-        <label class="block font-bold">WhatsApp
-          <input
-            v-model="form.whatsapp"
-            name="whatsapp"
-            type="tel"
-            autocomplete="tel"
-            required
-            class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-            placeholder="(86) 99999-9999"
-          >
-        </label>
-        <label class="block font-bold">Email
-          <input
-            v-model="form.email"
-            name="email"
-            type="email"
-            autocomplete="email"
-            required
-            class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
-          >
-        </label>
+        <template v-if="!user">
+          <label class="block font-bold">Nome completo
+            <input
+              v-model="form.full_name"
+              name="full_name"
+              autocomplete="name"
+              required
+              minlength="6"
+              maxlength="150"
+              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+            >
+          </label>
+          <label class="block font-bold">CPF
+            <input
+              v-model="form.cpf"
+              name="cpf"
+              inputmode="numeric"
+              autocomplete="off"
+              required
+              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+              placeholder="000.000.000-00"
+            >
+          </label>
+          <label class="block font-bold">WhatsApp
+            <input
+              v-model="form.whatsapp"
+              name="whatsapp"
+              type="tel"
+              autocomplete="tel"
+              required
+              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+              placeholder="(86) 99999-9999"
+            >
+          </label>
+          <label class="block font-bold">Email
+            <input
+              v-model="form.email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              required
+              class="mt-2 w-full rounded-xl border border-border p-3 font-normal"
+            >
+          </label>
+        </template>
         <label class="block font-bold">Voucher de desconto (opcional)
           <input
             v-model="form.voucher_code"
@@ -101,13 +105,28 @@ const submit = async () => {
             placeholder="Ex.: EXALUNO20"
           >
         </label>
-        <label class="flex items-start gap-3 text-sm"><input
+        <label
+          v-if="user"
+          class="flex items-start gap-3 text-sm"
+        ><input
           v-model="form.terms_accepted"
           type="checkbox"
           required
           class="mt-1"
         > <span>Li e concordo com os Termos de Uso e Política de Privacidade.</span></label>
-        <label class="flex items-start gap-3 text-sm"><input
+        <label
+          v-if="!user"
+          class="flex items-start gap-3 text-sm"
+        ><input
+          v-model="form.terms_accepted"
+          type="checkbox"
+          required
+          class="mt-1"
+        > <span>Li e concordo com os Termos de Uso e Política de Privacidade.</span></label>
+        <label
+          v-if="!user"
+          class="flex items-start gap-3 text-sm"
+        ><input
           v-model="form.marketing_accepted"
           type="checkbox"
           class="mt-1"
