@@ -30,6 +30,27 @@ const removeMaterial = async (materialId: string) => {
   await $fetch(`/api/admin/courses/${id}/materials/${materialId}`, { method: 'DELETE' }); await refreshCourse()
 }
 const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFixed(1)} MB` : `${Math.ceil(bytes / 1024)} KB`
+type CourseVoucher = { id: string, code: string, type: 'PERCENTAGE' | 'FIXED', value: number, active: boolean, max_uses: number | null, used_count: number, starts_at: string | null, expires_at: string | null }
+const { data: vouchers, refresh: refreshVouchers } = await useFetch<CourseVoucher[]>(`/api/admin/courses/${id}/vouchers`)
+const voucherForm = reactive({ code: '', type: 'PERCENTAGE' as 'PERCENTAGE' | 'FIXED', value: 10, max_uses: '' })
+const voucherBusy = ref(false)
+const voucherMessage = ref('')
+const createVoucher = async () => {
+  voucherBusy.value = true; voucherMessage.value = ''
+  try {
+    await $fetch(`/api/admin/courses/${id}/vouchers`, { method: 'POST', body: { code: voucherForm.code, type: voucherForm.type, value: voucherForm.value, max_uses: voucherForm.max_uses || null } })
+    voucherForm.code = ''; voucherForm.type = 'PERCENTAGE'; voucherForm.value = 10; voucherForm.max_uses = ''
+    voucherMessage.value = 'Voucher criado e vinculado a este curso.'
+    await refreshVouchers()
+  }
+  catch (error) { voucherMessage.value = (error as { data?: { statusMessage?: string } }).data?.statusMessage ?? 'Não foi possível criar o voucher.' }
+  finally { voucherBusy.value = false }
+}
+const toggleVoucher = async (voucher: CourseVoucher) => {
+  voucherMessage.value = ''
+  try { await $fetch(`/api/admin/vouchers/${voucher.id}`, { method: 'PATCH', body: { active: !voucher.active } }); await refreshVouchers() }
+  catch (error) { voucherMessage.value = (error as { data?: { statusMessage?: string } }).data?.statusMessage ?? 'Não foi possível alterar o voucher.' }
+}
 </script>
 
 <template>
@@ -98,6 +119,98 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
         </p>
       </article>
     </div>
+    <section class="mt-6 rounded-card border border-border bg-white p-6">
+      <div>
+        <AppBadge>DESCONTO</AppBadge>
+        <h2 class="mt-3 text-xl font-black">
+          Vouchers deste curso
+        </h2>
+        <p class="mt-1 text-sm text-muted">
+          Crie um voucher para alunos com matrícula anterior. O desconto será válido somente neste curso.
+        </p>
+      </div>
+      <form
+        class="mt-5 grid gap-4 sm:grid-cols-3"
+        @submit.prevent="createVoucher"
+      >
+        <label class="font-bold">Código do voucher<input
+          v-model="voucherForm.code"
+          required
+          minlength="3"
+          maxlength="40"
+          pattern="[A-Za-z0-9_-]+"
+          class="field"
+          placeholder="EXALUNO20"
+        ></label>
+        <label class="font-bold">Tipo de desconto<select
+          v-model="voucherForm.type"
+          class="field"
+        ><option value="PERCENTAGE">Porcentagem (%)</option><option value="FIXED">Valor (R$)</option></select></label>
+        <label class="font-bold">{{ voucherForm.type === 'PERCENTAGE' ? 'Desconto (%)' : 'Desconto (R$)' }}<input
+          v-model.number="voucherForm.value"
+          required
+          type="number"
+          min="0.01"
+          :max="voucherForm.type === 'PERCENTAGE' ? 100 : undefined"
+          step="0.01"
+          class="field"
+        ></label>
+        <label class="font-bold">Limite de usos (opcional)<input
+          v-model="voucherForm.max_uses"
+          type="number"
+          min="1"
+          step="1"
+          class="field"
+          placeholder="Sem limite"
+        ></label>
+        <p
+          v-if="voucherMessage"
+          role="status"
+          class="text-sm font-bold text-primary-700 sm:col-span-3"
+        >
+          {{ voucherMessage }}
+        </p>
+        <div class="sm:col-span-3">
+          <AppButton
+            type="submit"
+            :disabled="voucherBusy"
+          >
+            {{ voucherBusy ? 'Salvando…' : 'Criar voucher para este curso' }}
+          </AppButton>
+        </div>
+      </form>
+      <div
+        v-if="vouchers?.length"
+        class="mt-5 divide-y divide-border rounded-xl border border-border"
+      >
+        <article
+          v-for="voucher in vouchers"
+          :key="voucher.id"
+          class="flex flex-wrap items-center justify-between gap-3 p-4"
+        >
+          <div>
+            <p class="font-black">
+              {{ voucher.code }} <span class="text-primary-700">· {{ voucher.type === 'PERCENTAGE' ? `${Number(voucher.value)}% OFF` : `R$ ${Number(voucher.value).toFixed(2)} OFF` }}</span>
+            </p><p class="mt-1 text-xs text-muted">
+              Ex-alunos · {{ voucher.used_count }} uso(s){{ voucher.max_uses ? ` de ${voucher.max_uses}` : '' }}
+            </p>
+          </div>
+          <button
+            type="button"
+            class="rounded-lg border border-border px-4 py-2 text-sm font-bold"
+            @click="toggleVoucher(voucher)"
+          >
+            {{ voucher.active ? 'Desativar' : 'Ativar' }}
+          </button>
+        </article>
+      </div>
+      <p
+        v-else
+        class="mt-5 text-sm text-muted"
+      >
+        Nenhum voucher criado para este curso.
+      </p>
+    </section>
     <section class="mt-6 rounded-card border border-border bg-white p-6">
       <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
