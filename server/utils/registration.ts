@@ -31,6 +31,7 @@ export const guestRegistrationSchema = z.object({
   email: z.email('Email inválido').transform(value => value.trim().toLowerCase()),
   terms_accepted: z.literal(true, 'Aceite os Termos de Uso e a Política de Privacidade'),
   marketing_accepted: z.boolean().default(false),
+  voucher_code: z.string().trim().max(40).transform(value => value.toUpperCase()).optional(),
 }).strict()
 
 const keyedHash = (value: string, secret: string) => createHash('sha256').update(`${secret}:${value}`).digest('hex')
