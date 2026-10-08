@@ -73,18 +73,63 @@ useSeoMeta({ title: () => `${data.value?.course.title ?? 'Curso'} | Área do alu
         Nenhum material disponível para este curso no momento.
       </p>
     </section>
-    <section v-if="data?.modules.length" class="mt-9">
-      <AppBadge>CONTEÚDO</AppBadge><h2 class="mt-3 text-2xl font-black">Aulas e preparação</h2>
-      <p class="mt-2 text-muted">Conteúdos disponíveis para sua matrícula, inclusive materiais preparatórios liberados antes do início das aulas.</p>
+    <section
+      v-if="data?.modules.length"
+      class="mt-9"
+    >
+      <AppBadge>CONTEÚDO</AppBadge><h2 class="mt-3 text-2xl font-black">
+        Aulas e preparação
+      </h2>
+      <p class="mt-2 text-muted">
+        Conteúdos disponíveis para sua matrícula, inclusive materiais preparatórios liberados antes do início das aulas.
+      </p>
       <div class="mt-5 space-y-5">
-        <article v-for="module in data.modules" :key="module.id" class="rounded-card border border-border bg-white p-5 sm:p-6">
-          <h3 class="text-xl font-black">{{ module.title }}</h3><p v-if="module.description" class="mt-2 whitespace-pre-line text-muted">{{ module.description }}</p>
+        <article
+          v-for="module in data.modules"
+          :key="module.id"
+          class="rounded-card border border-border bg-white p-5 sm:p-6"
+        >
+          <h3 class="text-xl font-black">
+            {{ module.title }}
+          </h3><p
+            v-if="module.description"
+            class="mt-2 whitespace-pre-line text-muted"
+          >
+            {{ module.description }}
+          </p>
           <div class="mt-4 space-y-4">
-            <div v-for="lesson in module.lessons" :key="lesson.id" class="border-t border-border pt-4">
-              <h4 class="font-bold">{{ lesson.title }}</h4><p v-if="lesson.description" class="mt-1 text-sm text-muted">{{ lesson.description }}</p>
-              <div v-if="lesson.type === 'TEXT' && lesson.content" class="mt-3 whitespace-pre-line leading-7">{{ lesson.content }}</div>
-              <video v-else-if="lesson.videoUrl" controls preload="metadata" class="mt-3 max-h-[70vh] w-full rounded-xl bg-black" :src="lesson.videoUrl">Seu navegador não reproduz este vídeo.</video>
-              <p v-else-if="lesson.type === 'VIDEO'" class="mt-2 text-sm text-muted">Vídeo indisponível no momento.</p>
+            <div
+              v-for="lesson in module.lessons"
+              :key="lesson.id"
+              class="border-t border-border pt-4"
+            >
+              <h4 class="font-bold">
+                {{ lesson.title }}
+              </h4><p
+                v-if="lesson.description"
+                class="mt-1 text-sm text-muted"
+              >
+                {{ lesson.description }}
+              </p>
+              <div
+                v-if="lesson.type === 'TEXT' && lesson.content"
+                class="mt-3 whitespace-pre-line leading-7"
+              >
+                {{ lesson.content }}
+              </div>
+              <video
+                v-else-if="lesson.videoUrl"
+                controls
+                preload="metadata"
+                class="mt-3 max-h-[70vh] w-full rounded-xl bg-black"
+                :src="lesson.videoUrl"
+              >Seu navegador não reproduz este vídeo.</video>
+              <p
+                v-else-if="lesson.type === 'VIDEO'"
+                class="mt-2 text-sm text-muted"
+              >
+                Vídeo indisponível no momento.
+              </p>
             </div>
           </div>
         </article>

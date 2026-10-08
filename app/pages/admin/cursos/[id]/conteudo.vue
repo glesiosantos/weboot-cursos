@@ -74,7 +74,9 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
   <section>
     <AppBadge>COURSE BUILDER</AppBadge><h1 class="mt-3 text-3xl font-black">
       Curso: {{ data?.course.title }}
-    </h1><p class="mt-2 text-muted">Para liberar materiais antes da aula, crie um módulo chamado “Preparação” e adicione textos, vídeos ou PDFs. O conteúdo fica disponível após a matrícula ativa.</p><p
+    </h1><p class="mt-2 text-muted">
+      Para liberar materiais antes da aula, crie um módulo chamado “Preparação” e adicione textos, vídeos ou PDFs. O conteúdo fica disponível após a matrícula ativa.
+    </p><p
       v-if="errorMessage"
       role="alert"
       class="mt-5 text-danger"
@@ -150,10 +152,27 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
               </AppBadge>
             </div>
             <div class="mt-3 grid gap-3 sm:grid-cols-2">
-              <label class="font-bold">Tipo de conteúdo<select v-model="lesson.lesson_type" class="field"><option value="TEXT">Texto</option><option value="VIDEO">Vídeo</option><option value="MATERIAL">Material</option></select></label>
-              <label class="font-bold">Descrição<input v-model="lesson.description" class="field" maxlength="2000" placeholder="Orientação para o aluno"></label>
+              <label class="font-bold">Tipo de conteúdo<select
+                v-model="lesson.lesson_type"
+                class="field"
+              ><option value="TEXT">Texto</option><option value="VIDEO">Vídeo</option><option value="MATERIAL">Material</option></select></label>
+              <label class="font-bold">Descrição<input
+                v-model="lesson.description"
+                class="field"
+                maxlength="2000"
+                placeholder="Orientação para o aluno"
+              ></label>
             </div>
-            <label v-if="lesson.lesson_type === 'TEXT'" class="mt-3 block font-bold">Texto da aula<textarea v-model="lesson.content" rows="5" maxlength="30000" class="field" placeholder="Escreva as orientações ou o conteúdo preparatório"></textarea></label>
+            <label
+              v-if="lesson.lesson_type === 'TEXT'"
+              class="mt-3 block font-bold"
+            >Texto da aula<textarea
+              v-model="lesson.content"
+              rows="5"
+              maxlength="30000"
+              class="field"
+              placeholder="Escreva as orientações ou o conteúdo preparatório"
+            /></label>
             <div class="mt-2 flex flex-wrap gap-3">
               <button
                 :disabled="lessonIndex === 0"
@@ -179,7 +198,13 @@ const fileSize = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFi
                 @click="removeLesson(lesson)"
               >
                 Remover aula
-              </button><label class="inline-flex cursor-pointer items-center gap-2 font-bold text-primary-700">{{ lesson.video_path ? 'Trocar vídeo' : 'Enviar vídeo' }}<input type="file" accept="video/mp4,video/webm" class="sr-only" :disabled="busy === lesson.id" @change="uploadLessonVideo(lesson, $event)"></label>
+              </button><label class="inline-flex cursor-pointer items-center gap-2 font-bold text-primary-700">{{ lesson.video_path ? 'Trocar vídeo' : 'Enviar vídeo' }}<input
+                type="file"
+                accept="video/mp4,video/webm"
+                class="sr-only"
+                :disabled="busy === lesson.id"
+                @change="uploadLessonVideo(lesson, $event)"
+              ></label>
             </div>
           </li>
         </ol><form
