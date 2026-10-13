@@ -27,6 +27,14 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 409, statusMessage: 'Valor recebido diverge do pedido' })
   }
   if (!confirmedStatuses.has(payment.status)) {
+    if (['refunded', 'charged_back'].includes(payment.status)) {
+      await context.admin.rpc('cancel_commercial_order', { target_order_id: context.order.id, new_status: 'REFUNDED' }).throwOnError()
+      return { status: 'REFUNDED', provider_status: payment.status }
+    }
+    if (['cancelled', 'rejected'].includes(payment.status)) {
+      await context.admin.rpc('cancel_commercial_order', { target_order_id: context.order.id, new_status: 'CANCELED' }).throwOnError()
+      return { status: 'CANCELED', provider_status: payment.status }
+    }
     return { status: context.order.status, provider_status: payment.status }
   }
 
