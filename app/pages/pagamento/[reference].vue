@@ -15,6 +15,7 @@ const infoMessage = ref('')
 const pix = ref<PixResponse | null>(null)
 const cardSubmitted = ref(false)
 const paymentConfirmed = computed(() => checkout.value?.status === 'PAID')
+const paymentNotConfirmed = computed(() => ['CANCELED', 'EXPIRED', 'REFUNDED'].includes(checkout.value?.status ?? ''))
 const currency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 const payPix = async () => {
@@ -89,6 +90,38 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
           class="mt-6"
         >
           ACESSAR PAINEL DO ALUNO
+        </AppButton>
+      </div>
+
+      <div
+        v-else-if="paymentNotConfirmed"
+        class="text-center"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="text-5xl text-red-600">
+          ×
+        </div>
+        <h1 class="mt-4 text-3xl font-black">
+          Inscrição não confirmada
+        </h1>
+        <p class="mt-4 text-muted">
+          <template v-if="checkout?.status === 'REFUNDED'">
+            O pagamento foi estornado e a inscrição não está ativa.
+          </template>
+          <template v-else>
+            O Mercado Pago não confirmou o pagamento e a inscrição não foi concluída.
+          </template>
+          O acesso ao curso não está liberado.
+        </p>
+        <p class="mt-3 text-muted">
+          Você pode iniciar uma nova inscrição e tentar novamente com outra forma de pagamento.
+        </p>
+        <AppButton
+          to="/cursos"
+          class="mt-6"
+        >
+          VER CURSOS
         </AppButton>
       </div>
 
@@ -198,7 +231,7 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
           </AppButton>
         </div>
         <p
-          v-if="cardSubmitted && !paymentConfirmed"
+          v-if="cardSubmitted && !paymentConfirmed && !paymentNotConfirmed"
           role="status"
           aria-live="polite"
           class="mt-6 rounded-xl bg-blue-50 p-4 text-sm text-blue-900"
