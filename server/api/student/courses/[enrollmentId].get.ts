@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   const admin = serverSupabaseServiceRole(event) as any
   const { data: enrollment, error } = await admin.from('enrollments')
     .select('id,enrolled_at,courses(id,title,slug,short_description,description,course_type,cover_path)')
-    .eq('id', enrollmentId).eq('user_id', user.sub).eq('status', 'ACTIVE').single()
+    .eq('id', enrollmentId).eq('user_id', user.sub).in('status', ['ACTIVE', 'COMPLETED']).single()
   if (error || !enrollment?.courses) { throw createError({ statusCode: 404, statusMessage: 'Curso não encontrado na sua conta' }) }
   const course = Array.isArray(enrollment.courses) ? enrollment.courses[0] : enrollment.courses
   const { data: materials, error: materialError } = await admin.from('course_materials')
