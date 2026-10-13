@@ -51,14 +51,25 @@ export default defineEventHandler(async (event) => {
   }
   if (eventError && eventError.code !== '23505') { throw createError({ statusCode: 500, statusMessage: 'Falha ao registrar webhook' }) }
   try {
-    const { data: order } = await admin.from('orders').select('id,total,payment_provider,provider_payment_id')
+    const { data: order } = await admin.from('orders').select('id,total,payment_provider,payment_method,provider_payment_id,provider_preference_id')
       .eq('id', payment.externalReference).single()
     if (!order) { throw createError({ statusCode: 404, statusMessage: 'Pedido do pagamento não encontrado' }) }
-    if (order.payment_provider !== 'MERCADO_PAGO' || order.provider_payment_id !== payment.id) {
+    if (order.payment_provider !== 'MERCADO_PAGO' || (order.provider_payment_id !== payment.id && !(order.payment_method === 'CREDIT_CARD' && order.provider_preference_id && !order.provider_payment_id))) {
       throw createError({ statusCode: 409, statusMessage: 'Pagamento não pertence ao pedido' })
+    }
+    if (order.payment_method === 'CREDIT_CARD' && payment.paymentTypeId !== 'credit_card') {
+      throw createError({ statusCode: 409, statusMessage: 'O pagamento recebido não é de cartão de crédito' })
     }
     if (payment.value === undefined || Math.round(Number(payment.value) * 100) !== Math.round(Number(order.total) * 100)) {
       throw createError({ statusCode: 409, statusMessage: 'Valor recebido diverge do pedido' })
+    }
+    if (!order.provider_payment_id) {
+      const { data: linked, error: linkError } = await admin.from('orders').update({
+        provider_payment_id: payment.id,
+        installment_count: payment.installments ?? 1,
+      }).eq('id', order.id).is('provider_payment_id', null).eq('provider_preference_id', order.provider_preference_id).select('id').maybeSingle()
+      if (linkError) { throw linkError }
+      if (!linked) { throw createError({ statusCode: 409, statusMessage: 'Pagamento já vinculado a outra tentativa' }) }
     }
     if (payment.status === 'approved') {
       await completeCommercialOrder(admin, order.id, payment.id, payment.status, {

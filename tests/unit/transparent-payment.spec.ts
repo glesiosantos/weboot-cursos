@@ -11,7 +11,7 @@ const config = {
   paymentServiceFee: 0,
 }
 
-describe('transparent payment', () => {
+describe('Mercado Pago hosted card checkout', () => {
   it('automatically restores an open Pix without showing the generation form', () => {
     const page = readFileSync('app/pages/pagamento/[reference].vue', 'utf8')
     const endpoint = readFileSync('server/api/payments/[reference].get.ts', 'utf8')
@@ -28,9 +28,11 @@ describe('transparent payment', () => {
     expect(page).toContain('CREDIT_CARD')
     expect(page).toContain('/card`')
     expect(checkoutEndpoint).toContain('card: Array.from')
-    expect(endpoint).toContain('paymentMethodId: parsed.data.payment_method_id')
-    expect(cardProvider).toContain('X-Idempotency-Key')
-    expect(cardProvider).toContain('token: input.token')
+    expect(endpoint).toContain('createCardPreference')
+    expect(endpoint).toContain('init_point')
+    expect(cardProvider).toContain('/checkout/preferences')
+    expect(cardProvider).toContain('installments: 3')
+    expect(page).toContain('window.location.assign(result.init_point)')
     expect(endpoint).not.toContain('number:')
     expect(endpoint).not.toContain('ccv:')
   })

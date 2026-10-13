@@ -5,6 +5,8 @@ type MercadoPagoPayment = MercadoPagoError & {
   status_detail?: string
   external_reference?: string
   transaction_amount?: number
+  payment_type_id?: string
+  installments?: number
   date_of_expiration?: string
   point_of_interaction?: {
     transaction_data?: { qr_code?: string, qr_code_base64?: string, ticket_url?: string }
@@ -108,6 +110,48 @@ export class MercadoPagoPaymentProvider {
     return this.normalizePayment(payload, false)
   }
 
+  async createCardPreference(input: {
+    amount: number
+    title: string
+    externalReference: string
+    notificationUrl?: string
+    successUrl: string
+    failureUrl: string
+    pendingUrl: string
+    payer: MercadoPagoPayer
+  }) {
+    const payload = await this.request<MercadoPagoError & { id?: string, init_point?: string, sandbox_init_point?: string }>('/checkout/preferences', {
+      method: 'POST',
+      body: JSON.stringify({
+        items: [{ id: input.externalReference, title: input.title, quantity: 1, currency_id: 'BRL', unit_price: input.amount }],
+        external_reference: input.externalReference,
+        payer: { email: input.payer.email, name: input.payer.firstName, surname: input.payer.lastName, identification: { type: 'CPF', number: input.payer.cpf } },
+        payment_methods: {
+          installments: 3,
+          default_installments: 1,
+          excluded_payment_types: ['ticket', 'bank_transfer', 'atm', 'debit_card', 'prepaid_card', 'digital_currency', 'voucher_card'].map(id => ({ id })),
+        },
+        back_urls: { success: input.successUrl, failure: input.failureUrl, pending: input.pendingUrl },
+        auto_return: 'approved',
+        ...(input.notificationUrl ? { notification_url: input.notificationUrl } : {}),
+      }),
+    })
+    if (!payload.id || !payload.init_point) {
+      throw createError({ statusCode: 502, statusMessage: 'Checkout do Mercado Pago indisponível' })
+    }
+    return { id: payload.id, initPoint: payload.init_point, sandboxInitPoint: payload.sandbox_init_point }
+  }
+
+  async getPreference(preferenceId: string) {
+    return this.request<MercadoPagoError & { id?: string, init_point?: string, sandbox_init_point?: string }>(`/checkout/preferences/${encodeURIComponent(preferenceId)}`, { method: 'GET' })
+  }
+
+  async searchPayments(externalReference: string) {
+    const query = new URLSearchParams({ external_reference: externalReference, sort: 'date_created', criteria: 'desc', limit: '20' })
+    const payload = await this.request<MercadoPagoError & { results?: MercadoPagoPayment[] }>(`/v1/payments/search?${query}`, { method: 'GET' })
+    return (payload.results ?? []).map(payment => this.normalizePayment(payment, false))
+  }
+
   async getPayment(paymentId: string) {
     const payload = await this.request<MercadoPagoPayment>(`/v1/payments/${encodeURIComponent(paymentId)}`, { method: 'GET' })
     return this.normalizePayment(payload, false)
@@ -127,6 +171,8 @@ export class MercadoPagoPaymentProvider {
       statusDetail: payload.status_detail,
       externalReference: payload.external_reference,
       value: payload.transaction_amount,
+      paymentTypeId: payload.payment_type_id,
+      installments: payload.installments,
       encodedImage: pix?.qr_code_base64,
       qrCodeBase64: pix?.qr_code_base64,
       payload: pix?.qr_code,

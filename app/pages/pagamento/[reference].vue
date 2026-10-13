@@ -3,17 +3,17 @@ const route = useRoute()
 const reference = encodeURIComponent(String(route.params.reference))
 type Price = { base: number, providerFee: number, serviceFee: number, total: number, installments: number }
 type PixResponse = { encodedImage: string, payload: string, expirationDate?: string }
-type Checkout = { status: string, has_open_pix: boolean, course_title: string, expires_at: string, mercado_pago_public_key: string, payer_email: string, payer_cpf: string, prices: { pix: Price, card: Price[] } }
-type PaymentResponse = { payment_id?: string, status?: string, status_detail?: string, paid?: boolean }
+type Checkout = { status: string, has_open_pix: boolean, course_title: string, expires_at: string, prices: { pix: Price, card: Price[] } }
+type PaymentResponse = { init_point?: string, paid?: boolean }
 const { data: checkout, refresh: refreshCheckout } = await useFetch<Checkout>(`/api/payments/${reference}`)
 if (!checkout.value) { throw createError({ statusCode: 404, statusMessage: 'Pagamento não encontrado' }) }
 
-const method = ref<'PIX' | 'CREDIT_CARD'>('PIX')
+const method = ref<'PIX' | 'CREDIT_CARD'>(route.query.checkout === 'return' ? 'CREDIT_CARD' : 'PIX')
 const loading = ref(false)
 const errorMessage = ref('')
 const infoMessage = ref('')
 const pix = ref<PixResponse | null>(null)
-const cardSubmitted = ref(false)
+const cardSubmitted = ref(route.query.checkout === 'return')
 const paymentConfirmed = computed(() => checkout.value?.status === 'PAID')
 const paymentNotConfirmed = computed(() => ['CANCELED', 'EXPIRED', 'REFUNDED'].includes(checkout.value?.status ?? ''))
 const currency = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -28,14 +28,18 @@ const payPix = async () => {
   finally { loading.value = false }
 }
 
-const payCard = async (card: { token: string, payment_method_id: string, issuer_id?: string, installments: number }) => {
+const payCard = async () => {
   loading.value = true
   errorMessage.value = ''
   infoMessage.value = ''
   try {
-    const result = await $fetch<PaymentResponse>(`/api/payments/${reference}/card`, { method: 'POST', body: card })
+    const result = await $fetch<PaymentResponse>(`/api/payments/${reference}/card`, { method: 'POST' })
+    if (result.init_point) {
+      window.location.assign(result.init_point)
+      return
+    }
     cardSubmitted.value = true
-    infoMessage.value = result.status === 'approved' ? 'Cartão aprovado. Confirmando sua inscrição com segurança…' : `Cartão enviado ao Mercado Pago (${result.status ?? 'em análise'}). A confirmação pode levar alguns instantes.`
+    infoMessage.value = result.paid ? 'Pagamento confirmado. Atualizando sua inscrição…' : 'Aguardando confirmação do Mercado Pago…'
     await refreshPaymentStatus()
   }
   catch (error: unknown) {
@@ -58,6 +62,7 @@ const refreshPaymentStatus = async () => {
   }
 }
 onMounted(() => {
+  if (route.query.checkout === 'return') { void refreshPaymentStatus() }
   if (checkout.value?.has_open_pix) { void payPix() }
   if (!paymentConfirmed.value) { paymentStatusTimer = setInterval(() => { void refreshPaymentStatus() }, 5000) }
 })
@@ -190,19 +195,19 @@ onBeforeUnmount(() => { if (paymentStatusTimer) { clearInterval(paymentStatusTim
         >
           <dl class="mb-5 rounded-xl bg-slate-50 p-4 text-sm">
             <div class="flex justify-between text-base font-black">
-              <dt>Total</dt><dd>{{ currency(checkout!.prices.card[0]!.total) }}</dd>
+              <dt>Valor à vista</dt><dd>{{ currency(checkout!.prices.card[0]!.total) }}</dd>
             </div><p class="mt-2 text-xs text-muted">
-              As opções de parcelamento disponíveis serão exibidas pelo Mercado Pago.
+              Você será direcionado ao Mercado Pago. O checkout exibirá as condições do emissor em até 3 parcelas.
             </p>
           </dl>
-          <MercadoPagoCardForm
-            :public-key="checkout!.mercado_pago_public_key"
-            :amount="checkout!.prices.card[0]!.total"
-            :email="checkout!.payer_email"
-            :cpf="checkout!.payer_cpf"
-            @payment="payCard"
-            @error="errorMessage = $event"
-          />
+          <button
+            type="button"
+            class="w-full rounded-xl bg-primary-700 px-5 py-3 font-bold text-white disabled:opacity-60"
+            :disabled="loading"
+            @click="payCard"
+          >
+            {{ loading ? 'ABRINDO MERCADO PAGO…' : 'PAGAR COM CARTÃO NO MERCADO PAGO' }}
+          </button>
         </div>
 
         <div
