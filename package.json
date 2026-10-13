@@ -1,6 +1,6 @@
 {
   "name": "weboot-cursos",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "packageManager": "yarn@1.22.22",
   "type": "module",
   "private": true,
