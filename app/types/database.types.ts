@@ -958,6 +958,7 @@ export type Database = {
           asaas_payment_id: string | null
           payment_provider: string | null
           provider_payment_id: string | null
+          provider_preference_id: string | null
           coupon_id: string | null
           course_batch_id: string | null
           course_id: string
@@ -982,6 +983,7 @@ export type Database = {
           asaas_payment_id?: string | null
           payment_provider?: string | null
           provider_payment_id?: string | null
+          provider_preference_id?: string | null
           coupon_id?: string | null
           course_batch_id?: string | null
           course_id: string
@@ -1006,6 +1008,7 @@ export type Database = {
           asaas_payment_id?: string | null
           payment_provider?: string | null
           provider_payment_id?: string | null
+          provider_preference_id?: string | null
           coupon_id?: string | null
           course_batch_id?: string | null
           course_id?: string
