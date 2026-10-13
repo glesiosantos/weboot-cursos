@@ -62,8 +62,8 @@ describe('sales dashboard and student materials', () => {
     expect(participantsPage).toContain('Reenviar primeiro acesso')
   })
 
-  it('checks active ownership before creating temporary material links', () => {
-    expect(studentCourseApi).toContain('.eq(\'user_id\', user.sub).eq(\'status\', \'ACTIVE\')')
+  it('checks active or completed ownership before creating temporary material links', () => {
+    expect(studentCourseApi).toContain('.eq(\'user_id\', user.sub).in(\'status\', [\'ACTIVE\', \'COMPLETED\'])')
     expect(studentCourseApi).toContain('createSignedUrl(material.file_path, 3600')
     expect(studentCoursePage).toContain('Materiais do curso')
     expect(studentCoursePage).toContain('course.coverUrl')
