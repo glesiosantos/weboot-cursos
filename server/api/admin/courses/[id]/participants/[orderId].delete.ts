@@ -5,8 +5,8 @@ const removalError = (message: string) => {
   if (message.includes('participant not found')) {
     return createError({ statusCode: 404, statusMessage: 'Participante não encontrado neste curso' })
   }
-  if (message.includes('participant has other registrations')) {
-    return createError({ statusCode: 409, statusMessage: 'Este participante possui outras inscrições. A remoção completa deve ser feita com suporte técnico.' })
+  if (message.includes('participant removal only allowed for published courses')) {
+    return createError({ statusCode: 409, statusMessage: 'A remoção de participantes está disponível somente em cursos publicados.' })
   }
   return createError({ statusCode: 500, statusMessage: 'Não foi possível remover o participante' })
 }

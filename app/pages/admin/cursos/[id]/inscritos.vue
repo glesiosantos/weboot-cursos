@@ -57,13 +57,13 @@ const resend = async (enrollmentId: string, type: 'ENROLLMENT_CONFIRMATION' | 'E
   }
 }
 const removeParticipant = async (participant: Participant) => {
-  if (!window.confirm(`Remover ${participant.name}? A inscrição, o pagamento, a matrícula e os dados de teste deste curso serão excluídos. Esta ação não pode ser desfeita.`)) { return }
+  if (!window.confirm(`Remover ${participant.name} deste curso publicado? A inscrição, o pagamento e a matrícula deste curso serão excluídos. O histórico dele nos outros cursos será mantido. Esta ação não pode ser desfeita.`)) { return }
   removingId.value = participant.id
   actionMessage.value = ''
   actionError.value = ''
   try {
     await $fetch(`/api/admin/courses/${courseId}/participants/${participant.id}`, { method: 'DELETE' })
-    actionMessage.value = `${participant.name} foi removido. O email e o CPF podem ser usados em uma nova inscrição.`
+    actionMessage.value = `${participant.name} foi removido deste curso. O histórico nos outros cursos foi mantido.`
     await refresh()
   }
   catch (error) {
